@@ -22,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -486,7 +487,7 @@ private fun SendspinSection(
             OverflowMenu(
                 modifier = Modifier,
                 buttonContent = { onClick ->
-                    androidx.compose.material3.Icon(
+                    Icon(
                         modifier = Modifier
                             .clickable(enabled = !sendspinEnabled) { onClick() }
                             .size(24.dp),

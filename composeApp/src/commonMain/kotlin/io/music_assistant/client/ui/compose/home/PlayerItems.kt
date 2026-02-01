@@ -37,7 +37,6 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -415,7 +414,9 @@ fun FullPlayerItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = duration?.formatDuration(DurationUnit.SECONDS) ?: "\u221E",
+                    text = track
+                        ?.let { duration?.formatDuration(DurationUnit.SECONDS) ?: "\u221E" }
+                        ?: "",
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

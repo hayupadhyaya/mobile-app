@@ -23,10 +23,10 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.VolumeMute
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.sp
 import io.music_assistant.client.data.model.client.AppMediaItem
 import io.music_assistant.client.data.model.client.PlayerData
 import io.music_assistant.client.ui.compose.common.HorizontalPagerIndicator
+import io.music_assistant.client.ui.compose.common.OverflowMenu
+import io.music_assistant.client.ui.compose.common.OverflowMenuOption
 import io.music_assistant.client.ui.compose.common.action.PlayerAction
 import io.music_assistant.client.ui.compose.common.action.QueueAction
 import io.music_assistant.client.utils.conditional
@@ -91,29 +93,42 @@ internal fun PlayersPager(
         }
     }
 
-    var playersListVisible by remember { mutableStateOf(false) }
-
     Column(modifier = modifier) {
-        HorizontalPagerIndicator(
-            pagerState = playerPagerState,
-            onItemMoved = onItemMoved,
-            onRefreshClick = onPlayersRefreshClick,
-            onShowListClick = { playersListVisible = true },
-        )
-        DropdownMenu(
-            expanded = playersListVisible,
-            onDismissRequest = { playersListVisible = false }
-        ) {
-            playerDataList.forEach { data ->
-                val isLocalPlayer = data.playerId == playersState.localPlayerId
-                DropdownMenuItem(
-                    text = { Text(text = data.player.displayName + (if (isLocalPlayer) " (local)" else "")) },
-                    onClick = {
-                        moveToPlayer(data.player.id)
-                        playersListVisible = false
-                    }
-                )
-            }
+        Row(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
+            Icon(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .size(20.dp)
+                    .clickable(onClick = onPlayersRefreshClick),
+                imageVector = Icons.Default.Refresh,
+                tint = MaterialTheme.colorScheme.primary,
+                contentDescription = null,
+            )
+            HorizontalPagerIndicator(
+                modifier = Modifier.weight(1f),
+                pagerState = playerPagerState,
+                onItemMoved = onItemMoved,
+            )
+            OverflowMenu(
+                modifier = Modifier,
+                buttonContent = { onClick ->
+                    Icon(
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .size(20.dp)
+                            .clickable { onClick() },
+                        imageVector = Icons.AutoMirrored.Filled.List,
+                        tint = MaterialTheme.colorScheme.primary,
+                        contentDescription = null,
+                    )
+                },
+                options = playerDataList.map { data ->
+                    val isLocalPlayer = data.playerId == playersState.localPlayerId
+                    OverflowMenuOption(
+                        title = data.player.displayName + (if (isLocalPlayer) " (local)" else "")
+                    ) { moveToPlayer(data.player.id) }
+                }
+            )
         }
         HorizontalPager(
             modifier = Modifier.wrapContentHeight(),

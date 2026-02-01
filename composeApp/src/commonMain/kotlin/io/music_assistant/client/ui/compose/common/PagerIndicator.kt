@@ -16,10 +16,8 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.MoveDown
 import androidx.compose.material.icons.filled.MoveUp
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,8 +40,6 @@ fun HorizontalPagerIndicator(
     modifier: Modifier = Modifier,
     pagerState: PagerState,
     onItemMoved: ((Int) -> Unit)?,
-    onRefreshClick: () -> Unit,
-    onShowListClick: () -> Unit,
 ) {
     val pageCount = pagerState.pageCount
     val coroutineScope = rememberCoroutineScope()
@@ -90,106 +86,83 @@ fun HorizontalPagerIndicator(
         }
     }
 
-    Row(modifier = modifier.fillMaxWidth().wrapContentHeight()) {
-        Icon(
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .size(20.dp)
-                .clickable(onClick = onRefreshClick),
-            imageVector = Icons.Default.Refresh,
-            tint = MaterialTheme.colorScheme.primary,
-            contentDescription = null,
-        )
-
-
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            onItemMoved?.let {
-                Icon(
-                    modifier = Modifier
-                        .padding(horizontal = 8.dp)
-                        .size(20.dp)
-                        .clickable(pagerState.currentPage > 0) { moveWithAnimation(-1) },
-                    imageVector = Icons.Default.MoveUp,
-                    tint = MaterialTheme.colorScheme.primary
-                        .copy(alpha = if (pagerState.currentPage > 0) 1f else 0.4f),
-                    contentDescription = null,
-                )
-            }
-
-            if (pageCount <= 15) {
-                repeat(pageCount) { index ->
-                    val (fromIndex, toIndex) = animationState ?: (null to null)
-                    val isFrom = index == fromIndex
-                    val isTo = index == toIndex
-
-                    // Calculate offsets
-                    val xOffset = when {
-                        isFrom && toIndex != null -> {
-                            val direction = if (toIndex > fromIndex) 1f else -1f
-                            16f * direction * swapProgress.value
-                        }
-
-                        isTo && fromIndex != null -> {
-                            val direction = if (fromIndex > toIndex) 1f else -1f
-                            16f * direction * swapProgress.value
-                        }
-
-                        else -> 0f
-                    }
-
-                    val yOffset = if (isFrom) verticalOffset.value else 0f
-
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .offset(x = xOffset.dp, y = yOffset.dp)
-                            .size(if (index == pagerState.currentPage) 8.dp else 6.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (index == pagerState.currentPage)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                        alpha = 0.3f
-                                    )
-                            )
-                    )
-                }
-            } else {
-                Text(
-                    text = "${pagerState.currentPage + 1} / $pageCount",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            onItemMoved?.let {
-                Icon(
-                    modifier = Modifier
-                        .padding(horizontal = 8.dp)
-                        .size(20.dp)
-                        .clickable(pagerState.currentPage < pageCount - 1) { moveWithAnimation(1) },
-                    imageVector = Icons.Default.MoveDown,
-                    tint = MaterialTheme.colorScheme.primary
-                        .copy(alpha = if (pagerState.currentPage < pageCount - 1) 1f else 0.4f),
-                    contentDescription = null,
-                )
-            }
+    Row(
+        modifier = modifier.fillMaxWidth().wrapContentHeight(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        onItemMoved?.let {
+            Icon(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .size(20.dp)
+                    .clickable(pagerState.currentPage > 0) { moveWithAnimation(-1) },
+                imageVector = Icons.Default.MoveUp,
+                tint = MaterialTheme.colorScheme.primary
+                    .copy(alpha = if (pagerState.currentPage > 0) 1f else 0.4f),
+                contentDescription = null,
+            )
         }
 
-        Icon(
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .size(20.dp)
-                .clickable(onClick = onShowListClick),
-            imageVector = Icons.AutoMirrored.Filled.List,
-            tint = MaterialTheme.colorScheme.primary,
-            contentDescription = null,
-        )
+        if (pageCount <= 15) {
+            repeat(pageCount) { index ->
+                val (fromIndex, toIndex) = animationState ?: (null to null)
+                val isFrom = index == fromIndex
+                val isTo = index == toIndex
+
+                // Calculate offsets
+                val xOffset = when {
+                    isFrom && toIndex != null -> {
+                        val direction = if (toIndex > fromIndex) 1f else -1f
+                        16f * direction * swapProgress.value
+                    }
+
+                    isTo && fromIndex != null -> {
+                        val direction = if (fromIndex > toIndex) 1f else -1f
+                        16f * direction * swapProgress.value
+                    }
+
+                    else -> 0f
+                }
+
+                val yOffset = if (isFrom) verticalOffset.value else 0f
+
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .offset(x = xOffset.dp, y = yOffset.dp)
+                        .size(if (index == pagerState.currentPage) 8.dp else 6.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (index == pagerState.currentPage)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                    alpha = 0.3f
+                                )
+                        )
+                )
+            }
+        } else {
+            Text(
+                text = "${pagerState.currentPage + 1} / $pageCount",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+        onItemMoved?.let {
+            Icon(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .size(20.dp)
+                    .clickable(pagerState.currentPage < pageCount - 1) { moveWithAnimation(1) },
+                imageVector = Icons.Default.MoveDown,
+                tint = MaterialTheme.colorScheme.primary
+                    .copy(alpha = if (pagerState.currentPage < pageCount - 1) 1f else 0.4f),
+                contentDescription = null,
+            )
+        }
     }
 }
 
@@ -201,8 +174,6 @@ fun HorizontalPagerIndicatorNumbersPreview() {
             modifier = Modifier.fillMaxWidth().wrapContentHeight(),
             pagerState = rememberPagerState(pageCount = { 16 }, initialPage = 2),
             onItemMoved = {},
-            onRefreshClick = {},
-            onShowListClick = {}
         )
     }
 }
@@ -215,8 +186,6 @@ fun HorizontalPagerIndicatorDotsPreview() {
             modifier = Modifier.fillMaxWidth().wrapContentHeight(),
             pagerState = rememberPagerState(pageCount = { 9 }, initialPage = 2),
             onItemMoved = {},
-            onRefreshClick = {},
-            onShowListClick = {}
         )
     }
 }
