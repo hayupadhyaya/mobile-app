@@ -26,10 +26,75 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
+/**
+ * Manages the complete audio playback pipeline for Sendspin streaming.
+ *
+ * ## Architecture Overview
+ *
+ * This component implements a producer-consumer pattern with precise timestamp-based
+ * playback scheduling. Audio chunks arrive with server-assigned timestamps and are
+ * played back at the correct local time after clock synchronization.
+ *
+ * ## Multi-Threaded Architecture
+ *
+ * AudioStreamManager uses **three separate dispatcher contexts** for optimal performance:
+ *
+ * ### 1. Default Dispatcher (Producer)
+ * - **Purpose**: Binary message reception and audio decoding
+ * - **Why**: Decoding is CPU-intensive but not time-critical
+ * - **Operations**:
+ *   - Receive binary messages from WebSocket
+ *   - Parse chunk headers (timestamp, codec, payload)
+ *   - Decode audio (Opus/FLAC → PCM or passthrough)
+ *   - Add decoded chunks to timestamp-ordered buffer
+ * - **Characteristics**: Can run ahead of playback, preparing data in advance
+ *
+ * ### 2. audioDispatcher (High-Priority Consumer)
+ * - **Purpose**: Precise playback timing and audio output
+ * - **Why**: Requires low-latency, deterministic scheduling
+ * - **Operations**:
+ *   - Poll buffer for next chunk
+ *   - Check chunk timestamp vs current time
+ *   - Wait if too early, drop if too late, play if on-time
+ *   - Write PCM data to MediaPlayerController (AudioTrack/MPV)
+ * - **Characteristics**: High priority thread, minimal jitter, tight timing loop
+ *
+ * ### 3. Default Dispatcher (Adaptation)
+ * - **Purpose**: Periodic buffer threshold adjustment
+ * - **Why**: Network conditions change over time, buffer must adapt
+ * - **Operations**:
+ *   - Monitor RTT, jitter, drop rate every 5 seconds
+ *   - Calculate optimal prebuffer threshold
+ *   - Update adaptive buffer manager
+ * - **Characteristics**: Low priority, infrequent (5s interval)
+ *
+ * ## Threading Rationale
+ *
+ * The separation of decoding (Default) from playback (audioDispatcher) is critical:
+ * - **Decoding** can be slow (especially FLAC) and should not block playback
+ * - **Playback** must be fast and deterministic to avoid audio glitches
+ * - Producer can build buffer ahead of time, consumer drains at playback rate
+ *
+ * ## Synchronization
+ *
+ * - **TimestampOrderedBuffer**: Thread-safe queue (synchronized methods)
+ * - **StateFlows**: Reactive state updates (thread-safe by design)
+ * - **No shared mutable state** between producer and consumer
+ *
+ * ## Error Handling
+ *
+ * - Decoding errors: Return silence, log error, continue playback
+ * - Playback errors: Emit via `streamError` StateFlow, stop stream
+ * - Network errors: Auto-reconnect handled by SendspinWsHandler
+ *
+ * @see AudioPipeline for public interface
+ * @see AdaptiveBufferManager for buffer adaptation algorithm
+ * @see ClockSynchronizer for time synchronization
+ */
 class AudioStreamManager(
     private val clockSynchronizer: ClockSynchronizer,
     private val mediaPlayerController: MediaPlayerController
-) : CoroutineScope {
+) : AudioPipeline, CoroutineScope {
 
     private val logger = Logger.withTag("AudioStreamManager")
     private val supervisorJob = SupervisorJob()
@@ -57,14 +122,14 @@ class AudioStreamManager(
             dropRate = 0.0
         )
     )
-    val bufferState: StateFlow<BufferState> = _bufferState.asStateFlow()
+    override val bufferState: StateFlow<BufferState> = _bufferState.asStateFlow()
 
     private val _playbackPosition = MutableStateFlow(0L)
-    val playbackPosition: StateFlow<Long> = _playbackPosition.asStateFlow()
+    override val playbackPosition: StateFlow<Long> = _playbackPosition.asStateFlow()
 
     // Error state - emits when stream encounters an error
     private val _streamError = MutableStateFlow<Throwable?>(null)
-    val streamError: StateFlow<Throwable?> = _streamError.asStateFlow()
+    override val streamError: StateFlow<Throwable?> = _streamError.asStateFlow()
 
     private var streamConfig: StreamStartPlayer? = null
     private var isStreaming = false
@@ -74,7 +139,7 @@ class AudioStreamManager(
     private var lastBufferStateUpdate = 0L
     private val bufferStateUpdateInterval = 100_000L // Update max every 100ms
 
-    suspend fun startStream(config: StreamStartPlayer) {
+    override suspend fun startStream(config: StreamStartPlayer) {
         logger.i { "Starting stream: ${config.codec}, ${config.sampleRate}Hz, ${config.channels}ch, ${config.bitDepth}bit" }
 
         streamConfig = config
@@ -95,16 +160,10 @@ class AudioStreamManager(
         audioDecoder?.configure(formatSpec, config.codecHeader)
 
         // Determine output codec for MediaPlayerController
-        // iOS decoders are passthrough (return raw encoded data for MPV to handle)
-        // Android/Desktop decode to PCM
-        val decoder = audioDecoder
-        val outputCodec = if (decoder is PassthroughDecoder) {
-            // Passthrough decoder means native player handles codec decoding
-            AudioCodec.valueOf(config.codec.uppercase())
-        } else {
-            // After decoding, data is PCM
-            AudioCodec.PCM
-        }
+        // Decoder tells us what format it outputs:
+        // - iOS decoders: passthrough encoded data (OPUS, FLAC, etc) for MPV to handle
+        // - Android/Desktop decoders: convert to PCM
+        val outputCodec = audioDecoder?.getOutputCodec() ?: AudioCodec.PCM
 
         // Prepare MediaPlayerController
         mediaPlayerController.prepareStream(
@@ -145,7 +204,7 @@ class AudioStreamManager(
         return codec?.decoderInitializer?.invoke() ?: PcmDecoder()
     }
 
-    suspend fun processBinaryMessage(data: ByteArray) {
+    override suspend fun processBinaryMessage(data: ByteArray) {
         if (!isStreaming) {
             // Server is still sending chunks after we stopped - this is normal
             // (server doesn't know we stopped until timeout or explicit notification)
@@ -356,9 +415,15 @@ class AudioStreamManager(
         logger.i { "Prebuffer complete: ${bufferMs}ms (threshold=${thresholdMs}ms)" }
     }
 
+    /**
+     * Starts the buffer adaptation thread.
+     * Runs on Default dispatcher (not audioDispatcher) to avoid interfering with playback.
+     * Updates buffer thresholds every 5 seconds based on network conditions (RTT, jitter, drops).
+     */
     private fun startAdaptationThread() {
         adaptationJob?.cancel()
-        // Use Default dispatcher to avoid consuming high-priority audio threads
+        // Use Default dispatcher - this is low-priority periodic work that shouldn't
+        // consume cycles from the high-priority audioDispatcher playback thread
         adaptationJob = CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
             logger.i { "Starting adaptation thread" }
             while (isActive && isStreaming) {
@@ -429,7 +494,7 @@ class AudioStreamManager(
         }
     }
 
-    suspend fun clearStream() {
+    override suspend fun clearStream() {
         logger.i { "Clearing stream" }
         audioBuffer.clear()
         _playbackPosition.update { 0L }
@@ -459,7 +524,7 @@ class AudioStreamManager(
         // NOTE: isStreaming stays TRUE so we can receive new chunks
     }
 
-    suspend fun stopStream() {
+    override suspend fun stopStream() {
         logger.i { "Stopping stream" }
         isStreaming = false
         playbackJob?.cancel()
@@ -505,7 +570,7 @@ class AudioStreamManager(
         return startMark.elapsedNow().inWholeMicroseconds
     }
 
-    fun close() {
+    override fun close() {
         logger.i { "Closing AudioStreamManager" }
         playbackJob?.cancel()
         audioDecoder?.release()
@@ -513,8 +578,3 @@ class AudioStreamManager(
     }
 }
 
-/**
- * Marker interface for passthrough decoders that don't actually decode.
- * Used by iOS where MPV handles the decoding.
- */
-interface PassthroughDecoder
