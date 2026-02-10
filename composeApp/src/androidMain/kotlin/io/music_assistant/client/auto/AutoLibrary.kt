@@ -20,6 +20,7 @@ import io.music_assistant.client.data.model.server.MediaType
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.data.model.server.SearchResult
 import io.music_assistant.client.data.model.server.ServerMediaItem
+import io.music_assistant.client.utils.DataConnectionState
 import io.music_assistant.client.utils.SessionState
 import io.music_assistant.client.utils.resultAs
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +30,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -57,7 +60,9 @@ class AutoLibrary(
                                 MediaType.ARTIST,
                                 MediaType.ALBUM,
                                 MediaType.TRACK,
-                                MediaType.PLAYLIST
+                                MediaType.PLAYLIST,
+                                MediaType.PODCAST,
+                                MediaType.RADIO
                             ),
                             libraryOnly = false
                         )
@@ -84,7 +89,10 @@ class AutoLibrary(
                 result.sendResult(
                     listOf(
                         rootTabItem("Artists", MediaIds.TAB_ARTISTS),
-                        rootTabItem("Playlists", MediaIds.TAB_PLAYLISTS)
+                        rootTabItem("Albums", MediaIds.TAB_ALBUMS),
+                        rootTabItem("Playlists", MediaIds.TAB_PLAYLISTS),
+                                rootTabItem("Podcasts", MediaIds.TAB_PODCASTS),
+                    rootTabItem("Radio", MediaIds.TAB_RADIO)
                     )
                 )
             }
@@ -92,8 +100,35 @@ class AutoLibrary(
             MediaIds.TAB_ARTISTS -> {
                 result.detach()
                 scope.launch {
+                    // Block until authenticated, then proceed.
+                    apiClient.sessionState
+                        .mapNotNull { it as? SessionState.Connected }
+                        .mapNotNull { it.dataConnectionState as? DataConnectionState.Authenticated }
+                        .first()
                     result.sendResult(
                         apiClient.sendRequest(Request.Artist.listLibrary())
+                            .resultAs<List<ServerMediaItem>>()
+                            ?.toAppMediaItemList()
+                            ?.map {
+                                it.toAutoMediaItem(
+                                    baseUrl,
+                                    true,
+                                    defaultIconUri
+                                )
+                            })
+                }
+            }
+
+            MediaIds.TAB_ALBUMS -> {
+                result.detach()
+                scope.launch {
+                    // Block until authenticated, then proceed.
+                    apiClient.sessionState
+                        .mapNotNull { it as? SessionState.Connected }
+                        .mapNotNull { it.dataConnectionState as? DataConnectionState.Authenticated }
+                        .first()
+                    result.sendResult(
+                        apiClient.sendRequest(Request.Album.listLibrary())
                             .resultAs<List<ServerMediaItem>>()
                             ?.toAppMediaItemList()
                             ?.map {
@@ -109,6 +144,11 @@ class AutoLibrary(
             MediaIds.TAB_PLAYLISTS -> {
                 result.detach()
                 scope.launch {
+                    // Block until authenticated, then proceed.
+                    apiClient.sessionState
+                        .mapNotNull { it as? SessionState.Connected }
+                        .mapNotNull { it.dataConnectionState as? DataConnectionState.Authenticated }
+                        .first()
                     result.sendResult(
                         apiClient.sendRequest(Request.Playlist.listLibrary())
                             .resultAs<List<ServerMediaItem>>()
@@ -123,6 +163,52 @@ class AutoLibrary(
                 }
             }
 
+            MediaIds.TAB_PODCASTS -> {
+                result.detach()
+                scope.launch {
+                    // Block until authenticated, then proceed.
+                    apiClient.sessionState
+                        .mapNotNull { it as? SessionState.Connected }
+                        .mapNotNull { it.dataConnectionState as? DataConnectionState.Authenticated }
+                        .first()
+                    result.sendResult(
+                        apiClient.sendRequest(Request.Podcast.listLibrary())
+                            .resultAs<List<ServerMediaItem>>()
+                            ?.toAppMediaItemList()
+                            ?.map {
+                                it.toAutoMediaItem(
+                                    baseUrl,
+                                    true,
+                                    defaultIconUri
+                                )
+                            })
+                }
+            }
+
+            MediaIds.TAB_RADIO -> {
+                result.detach()
+                scope.launch {
+                    // Block until authenticated, then proceed.
+                    apiClient.sessionState
+                        .mapNotNull { it as? SessionState.Connected }
+                        .mapNotNull { it.dataConnectionState as? DataConnectionState.Authenticated }
+                        .first()
+                    result.sendResult(
+                        apiClient.sendRequest(Request.RadioStation.listLibrary())
+                            .resultAs<List<ServerMediaItem>>()
+                            ?.toAppMediaItemList()
+                            ?.map {
+                                it.toAutoMediaItem(
+                                    baseUrl,
+                                    true,
+                                    defaultIconUri
+                                )
+                            })
+                }
+            }
+
+
+
             else -> {
                 val parts = id.split("__")
                 if (parts.size != 4) {
@@ -134,6 +220,8 @@ class AutoLibrary(
                 val requestAndCategory = when (parentType) {
                     MediaType.ARTIST -> Request.Artist.getAlbums(parts[0], parts[3])
                     MediaType.ALBUM -> Request.Album.getTracks(parts[0], parts[3])
+                    MediaType.PLAYLIST -> Request.Playlist.getTracks(parts[0], parts[3])
+                    MediaType.PODCAST -> Request.Podcast.getEpisodes(parts[0], parts[3])
                     else -> {
                         result.sendResult(null)
                         return
@@ -213,7 +301,7 @@ class AutoLibrary(
                         queueOrPlayerId = queueId,
                         option = extras?.getString(
                             MediaIds.QUEUE_OPTION_KEY,
-                            QueueOption.PLAY.name
+                            QueueOption.REPLACE.name
                         )?.let { QueueOption.valueOf(it) },
                         radioMode = false
                     )
@@ -235,7 +323,10 @@ class AutoLibrary(
 internal object MediaIds {
     const val ROOT = "auto_lib_root"
     const val TAB_ARTISTS = "auto_lib_artists"
+    const val TAB_ALBUMS = "auto_lib_albums"
     const val TAB_PLAYLISTS = "auto_lib_playlists"
+    const val TAB_PODCASTS = "auto_lib_podcasts"
+    const val TAB_RADIO = "auto_lib_radio"
     const val QUEUE_OPTION_KEY = "auto_queue_option"
 }
 
@@ -247,7 +338,9 @@ private fun SearchResult.toAutoMediaItems(
         tracks to "Tracks",
         albums to "Albums",
         artists to "Artists",
-        playlists to "Playlists"
+        playlists to "Playlists",
+        podcasts to "Podcasts",
+        radios to "Radio stations"
     ).forEach { (items, category) ->
         addAll(items.mapNotNull { it.toAutoMediaItem(serverUrl, true, defaultIconUri, category) })
     }
@@ -277,7 +370,7 @@ private fun AppMediaItem.toAutoMediaItem(
 }
 
 private fun MediaType.isBrowsableInAuto(): Boolean = this in setOf(
-    MediaType.ARTIST, MediaType.ALBUM
+    MediaType.ARTIST, MediaType.ALBUM, MediaType.PODCAST, MediaType.PLAYLIST
 )
 
 fun @receiver:DrawableRes Int.toUri(context: Context): Uri = Uri.parse(
