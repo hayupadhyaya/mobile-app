@@ -4,10 +4,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.AddToQueue
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlaylistAddCircle
+import androidx.compose.material.icons.filled.QueuePlayNext
+import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -21,6 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import compose.icons.FontAwesomeIcons
+import compose.icons.TablerIcons
+import compose.icons.fontawesomeicons.Solid
+import compose.icons.fontawesomeicons.solid.Trash
+import compose.icons.tablericons.FolderMinus
+import compose.icons.tablericons.FolderPlus
+import compose.icons.tablericons.Heart
+import compose.icons.tablericons.HeartBroken
 import io.music_assistant.client.data.model.client.AppMediaItem
 import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.QueueOption
@@ -32,7 +48,7 @@ fun TrackWithMenu(
     modifier: Modifier = Modifier,
     item: PlayableItem,
     itemSize: Dp = 96.dp,
-    onTrackPlayOption: ((PlayableItem, QueueOption) -> Unit),
+    onTrackPlayOption: ((PlayableItem, QueueOption, Boolean) -> Unit),
     onItemClick: ((PlayableItem) -> Unit)? = null,
     playlistActions: ActionsViewModel.PlaylistActions? = null,
     onRemoveFromPlaylist: (() -> Unit)? = null,
@@ -70,7 +86,7 @@ fun EpisodeWithMenu(
     modifier: Modifier = Modifier,
     item: PlayableItem,
     itemSize: Dp = 96.dp,
-    onTrackPlayOption: ((PlayableItem, QueueOption) -> Unit),
+    onTrackPlayOption: ((PlayableItem, QueueOption, Boolean) -> Unit),
     onItemClick: ((PlayableItem) -> Unit)? = null,
     playlistActions: ActionsViewModel.PlaylistActions? = null,
     onRemoveFromPlaylist: (() -> Unit)? = null,
@@ -108,7 +124,7 @@ fun RadioWithMenu(
     modifier: Modifier = Modifier,
     item: PlayableItem,
     itemSize: Dp = 96.dp,
-    onTrackPlayOption: ((PlayableItem, QueueOption) -> Unit),
+    onTrackPlayOption: ((PlayableItem, QueueOption, Boolean) -> Unit),
     onItemClick: ((PlayableItem) -> Unit)? = null,
     playlistActions: ActionsViewModel.PlaylistActions? = null,
     onRemoveFromPlaylist: (() -> Unit)? = null,
@@ -151,7 +167,7 @@ private fun PlayableItemWithMenu(
     modifier: Modifier = Modifier,
     item: PlayableItem,
     itemSize: Dp = 96.dp,
-    onTrackPlayOption: ((PlayableItem, QueueOption) -> Unit),
+    onTrackPlayOption: ((PlayableItem, QueueOption, Boolean) -> Unit),
     onItemClick: ((PlayableItem) -> Unit)? = null,
     playlistActions: ActionsViewModel.PlaylistActions? = null,
     onRemoveFromPlaylist: (() -> Unit)? = null,
@@ -190,38 +206,86 @@ private fun PlayableItemWithMenu(
             DropdownMenuItem(
                 text = { Text("Play now") },
                 onClick = {
-                    onTrackPlayOption(item, QueueOption.REPLACE)
+                    onTrackPlayOption(item, QueueOption.REPLACE, false)
                     expandedTrackId = null
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Play now"
+                    )
                 }
             )
             DropdownMenuItem(
-                text = { Text("Add and play") },
+                text = { Text("Insert next and play") },
                 onClick = {
-                    onTrackPlayOption(item, QueueOption.PLAY)
+                    onTrackPlayOption(item, QueueOption.PLAY, false)
                     expandedTrackId = null
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.PlaylistAddCircle,
+                        contentDescription = "Insert next and play"
+                    )
                 }
             )
             DropdownMenuItem(
-                text = { Text("Add and play next") },
+                text = { Text("Insert next") },
                 onClick = {
-                    onTrackPlayOption(item, QueueOption.NEXT)
+                    onTrackPlayOption(item, QueueOption.NEXT, false)
                     expandedTrackId = null
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.QueuePlayNext,
+                        contentDescription = "Insert next"
+                    )
                 }
             )
             DropdownMenuItem(
                 text = { Text("Add to bottom") },
                 onClick = {
-                    onTrackPlayOption(item, QueueOption.ADD)
+                    onTrackPlayOption(item, QueueOption.ADD, false)
                     expandedTrackId = null
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.AddToQueue,
+                        contentDescription = "Add to bottom"
+                    )
                 }
             )
+            if (item.canStartRadio) {
+                DropdownMenuItem(
+                    text = { Text("Start radio") },
+                    onClick = {
+                        onTrackPlayOption(item, QueueOption.REPLACE, true)
+                        expandedTrackId = null
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Radio,
+                            contentDescription = "Start radio"
+                        )
+                    }
+                )
+            }
 
             (item as? AppMediaItem)?.let {
+                val libText = if (item.isInLibrary) "Remove from Library" else "Add to Library"
                 DropdownMenuItem(
-                    text = { Text(if (item.isInLibrary) "Remove from Library" else "Add to Library") },
+                    text = { Text(libText) },
                     onClick = {
                         libraryActions.onLibraryClick(item as AppMediaItem)
                         expandedTrackId = null
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector =
+                                if (item.isInLibrary) TablerIcons.FolderMinus
+                                else TablerIcons.FolderPlus,
+                            contentDescription = libText
+                        )
                     }
                 )
             }
@@ -229,13 +293,22 @@ private fun PlayableItemWithMenu(
 
             // Favorite management (only for library items)
             if (item.isInLibrary) {
+                val favText = if (item.favorite == true) "Unfavorite" else "Favorite"
                 DropdownMenuItem(
-                    text = { Text(if (item.favorite == true) "Unfavorite" else "Favorite") },
+                    text = { Text(favText) },
                     onClick = {
                         (item as? AppMediaItem)?.let {
                             libraryActions.onFavoriteClick(it)
                             expandedTrackId = null
                         }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector =
+                                if (item.favorite == true) TablerIcons.HeartBroken
+                                else TablerIcons.Heart,
+                            contentDescription = favText
+                        )
                     }
                 )
             }
@@ -252,6 +325,12 @@ private fun PlayableItemWithMenu(
                             playlists = playlistActions.onLoadPlaylists()
                             isLoadingPlaylists = false
                         }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                            contentDescription = "Add to Playlist"
+                        )
                     }
                 )
             }
@@ -261,6 +340,12 @@ private fun PlayableItemWithMenu(
                     onClick = {
                         onRemoveFromPlaylist()
                         expandedTrackId = null
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = FontAwesomeIcons.Solid.Trash,
+                            contentDescription = "Add to Playlist"
+                        )
                     }
                 )
             }

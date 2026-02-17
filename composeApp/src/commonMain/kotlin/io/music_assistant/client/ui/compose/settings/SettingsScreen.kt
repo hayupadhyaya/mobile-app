@@ -10,23 +10,32 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -57,7 +66,11 @@ import io.music_assistant.client.utils.DataConnectionState
 import io.music_assistant.client.utils.SessionState
 import io.music_assistant.client.utils.isIpPort
 import io.music_assistant.client.utils.isValidHost
+import io.music_assistant.client.webrtc.model.RemoteId
 import org.koin.compose.viewmodel.koinViewModel
+import org.publicvalue.multiplatform.qrcode.CameraPosition
+import org.publicvalue.multiplatform.qrcode.CodeType
+import org.publicvalue.multiplatform.qrcode.ScannerWithPermissions
 
 @Composable
 fun SettingsScreen(goHome: () -> Unit, exitApp: () -> Unit) {
@@ -135,11 +148,14 @@ fun SettingsScreen(goHome: () -> Unit, exitApp: () -> Unit) {
 
                 // Auto-reconnect on error ONLY if user hasn't changed the connection info
                 // This prevents auto-reconnect to old server when user is trying to connect to new server
+                // Does NOT auto-reconnect when user is using WebRTC (different failure mode)
+                val preferredMethod by viewModel.preferredConnectionMethod.collectAsStateWithLifecycle()
                 LaunchedEffect(sessionState) {
                     val connInfo = savedConnectionInfo
                     if (sessionState is SessionState.Disconnected.Error &&
                         connInfo != null &&
-                        !autoReconnectAttempted
+                        !autoReconnectAttempted &&
+                        preferredMethod != "webrtc"
                     ) {
                         // Only auto-reconnect if text fields match saved connection info
                         // (i.e., user hasn't changed anything)
@@ -178,7 +194,9 @@ fun SettingsScreen(goHome: () -> Unit, exitApp: () -> Unit) {
                 when (sessionState) {
                     is SessionState.Disconnected -> {
                         // State 1 & 2: Disconnected (with or without token)
-                        ServerConnectionSection(
+                        // Show connection method tabs
+                        ConnectionMethodTabs(
+                            viewModel = viewModel,
                             ipAddress = ipAddress,
                             port = port,
                             isTls = isTls,
@@ -186,18 +204,34 @@ fun SettingsScreen(goHome: () -> Unit, exitApp: () -> Unit) {
                             onIpAddressChange = { ipAddress = it },
                             onPortChange = { port = it },
                             onTlsChange = { isTls = it },
-                            onConnect = { viewModel.attemptConnection(ipAddress, port, isTls) },
-                            enabled = ipAddress.isValidHost() && port.isIpPort()
+                            onDirectConnect = {
+                                viewModel.attemptConnection(
+                                    ipAddress,
+                                    port,
+                                    isTls
+                                )
+                            },
+                            directConnectEnabled = ipAddress.isValidHost() && port.isIpPort(),
+                            sessionState = sessionState
                         )
                     }
 
                     SessionState.Connecting -> {
-                        ConnectingSection(ipAddress, port)
+                        ConnectingSection(
+                            ipAddress = ipAddress,
+                            port = port,
+                            preferredMethod = preferredMethod,
+                            onCancel = { viewModel.disconnect() }
+                        )
                     }
 
                     is SessionState.Reconnecting -> {
-                        // Show reconnecting state - similar to connecting but with attempt info
-                        ConnectingSection(ipAddress, port)
+                        ConnectingSection(
+                            ipAddress = ipAddress,
+                            port = port,
+                            preferredMethod = preferredMethod,
+                            onCancel = { viewModel.disconnect() }
+                        )
                     }
 
                     is SessionState.Connected -> {
@@ -207,6 +241,7 @@ fun SettingsScreen(goHome: () -> Unit, exitApp: () -> Unit) {
                         ServerInfoSection(
                             connectionInfo = savedConnectionInfo,
                             serverInfo = connectedState.serverInfo,
+                            isWebRTC = connectedState is SessionState.Connected.WebRTC,
                             onDisconnect = { viewModel.disconnect() }
                         )
 
@@ -215,6 +250,8 @@ fun SettingsScreen(goHome: () -> Unit, exitApp: () -> Unit) {
                         when (dataConnection) {
                             DataConnectionState.Authenticated -> {
                                 // State 4: Connected and authenticated
+
+                                // Local Player Section
                                 SendspinSection(
                                     viewModel = viewModel,
                                 )
@@ -264,7 +301,78 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun ServerConnectionSection(
+private fun ConnectionMethodTabs(
+    viewModel: SettingsViewModel,
+    ipAddress: String,
+    port: String,
+    isTls: Boolean,
+    hasToken: Boolean,
+    onIpAddressChange: (String) -> Unit,
+    onPortChange: (String) -> Unit,
+    onTlsChange: (Boolean) -> Unit,
+    onDirectConnect: () -> Unit,
+    directConnectEnabled: Boolean,
+    sessionState: SessionState
+) {
+    val preferredMethod by viewModel.preferredConnectionMethod.collectAsStateWithLifecycle()
+    val selectedTab = if (preferredMethod == "webrtc") 1 else 0
+    val webrtcRemoteId by viewModel.webrtcRemoteId.collectAsStateWithLifecycle()
+
+    SectionCard {
+        SectionTitle("Connection Method")
+
+        // Tabs
+        PrimaryTabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ) {
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { viewModel.setPreferredConnectionMethod("direct") },
+                text = { Text("Direct") }
+            )
+            Tab(
+                selected = selectedTab == 1,
+                onClick = { viewModel.setPreferredConnectionMethod("webrtc") },
+                text = { Text("WebRTC") }
+            )
+        }
+
+        Spacer(modifier = Modifier.size(16.dp))
+
+        // Tab content
+        when (selectedTab) {
+            0 -> {
+                // Direct connection tab
+                DirectConnectionContent(
+                    ipAddress = ipAddress,
+                    port = port,
+                    isTls = isTls,
+                    hasToken = hasToken,
+                    onIpAddressChange = onIpAddressChange,
+                    onPortChange = onPortChange,
+                    onTlsChange = onTlsChange,
+                    onConnect = onDirectConnect,
+                    enabled = directConnectEnabled
+                )
+            }
+
+            1 -> {
+                // WebRTC connection tab
+                WebRTCConnectionContent(
+                    remoteId = webrtcRemoteId,
+                    onRemoteIdChange = { viewModel.setWebrtcRemoteId(it.uppercase()) },
+                    onConnect = { viewModel.attemptWebRTCConnection(webrtcRemoteId) },
+                    sessionState = sessionState
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DirectConnectionContent(
     ipAddress: String,
     port: String,
     isTls: Boolean,
@@ -275,99 +383,249 @@ private fun ServerConnectionSection(
     onConnect: () -> Unit,
     enabled: Boolean
 ) {
-    SectionCard {
-        SectionTitle("Server Connection")
-
-        TextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp),
-            value = ipAddress,
-            onValueChange = onIpAddressChange,
-            label = { Text("Host") },
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-            ),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Uri,
-                autoCorrectEnabled = false
-            ),
+    // Host input
+    TextField(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        value = ipAddress,
+        onValueChange = onIpAddressChange,
+        label = { Text("Server host") },
+        placeholder = { Text("homeassistant.local") },
+        singleLine = true,
+        colors = TextFieldDefaults.colors(
+            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
         )
+    )
 
-        TextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp),
-            value = port,
-            onValueChange = onPortChange,
-            label = { Text("Port (8095 by default)") },
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-            )
+    // Port input
+    TextField(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        value = port,
+        onValueChange = onPortChange,
+        label = { Text("Port") },
+        placeholder = { Text("8095") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        colors = TextFieldDefaults.colors(
+            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
         )
+    )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(
-                checked = isTls,
-                onCheckedChange = onTlsChange
-            )
-            Text(
-                text = "Use TLS",
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+    // TLS toggle
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = isTls,
+            onCheckedChange = onTlsChange
+        )
+        Text("Use TLS (wss://)")
+    }
 
-        if (hasToken) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Credentials present",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        }
+    // Token indicator
+    if (hasToken) {
+        Text(
+            text = "Credentials present",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+    }
 
-        Button(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onConnect,
-            enabled = enabled
-        ) {
-            Text("Connect")
-        }
+    // Connect button
+    Button(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onConnect,
+        enabled = enabled
+    ) {
+        Text("Connect")
     }
 }
 
 @Composable
-private fun ConnectingSection(ipAddress: String, port: String) {
-    SectionCard {
-        Text(
-            modifier = Modifier.fillMaxWidth(),
-            text = "Connecting to $ipAddress:$port...",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center
+private fun WebRTCConnectionContent(
+    remoteId: String,
+    onRemoteIdChange: (String) -> Unit,
+    onConnect: () -> Unit,
+    sessionState: SessionState
+) {
+    val isInvalidRemoteId = remoteId.isNotBlank() && !RemoteId.isValid(remoteId)
+    val isConnected = sessionState is SessionState.Connected.WebRTC
+    val isConnecting = sessionState is SessionState.Connecting
+    var showQrDialog by remember { mutableStateOf(false) }
+
+    Text(
+        text = "Connect from anywhere without port forwarding",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(bottom = 12.dp)
+    )
+
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Remote ID input field
+        TextField(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = 8.dp),
+            value = remoteId,
+            onValueChange = onRemoteIdChange,
+            label = { Text("Remote ID") },
+            placeholder = { Text("XXXXXXXX-XXXXX-XXXXX-XXXXXXXX") },
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+            ),
+            supportingText = {
+                Text(
+                    text = "Enter the Remote ID from your Music Assistant server settings",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            isError = isInvalidRemoteId
         )
+
+        IconButton(onClick = { showQrDialog = true }) {
+            Icon(
+                imageVector = Icons.Default.QrCodeScanner,
+                contentDescription = "Scan QR code",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+
+    // Validation message
+    if (isInvalidRemoteId) {
+        Text(
+            text = "Invalid Remote ID format",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+    }
+
+    // Info text about WebRTC
+    Text(
+        text = "WebRTC uses cloud signaling with end-to-end encryption. Works through most firewalls and NATs.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        modifier = Modifier.padding(bottom = 12.dp)
+    )
+
+    // Connect button
+    Button(
+        onClick = onConnect,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = remoteId.isNotBlank() && !isInvalidRemoteId && !isConnected && !isConnecting
+    ) {
+        Text(
+            when {
+                isConnected -> "Connected"
+                isConnecting -> "Connecting..."
+                else -> "Connect via WebRTC"
+            }
+        )
+    }
+
+    if (showQrDialog) {
+        QrScanDialog(
+            onDismiss = { showQrDialog = false },
+            onScanned = { scannedText ->
+                onRemoteIdChange(
+                    (scannedText.indexOf(webRtcUrlPrefix) + webRtcUrlPrefix.length)
+                        .takeIf { it < scannedText.length }
+                        ?.let { scannedText.substring(it) }
+                        ?: scannedText)
+                showQrDialog = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QrScanDialog(
+    onDismiss: () -> Unit,
+    onScanned: (String) -> Unit,
+) {
+    BasicAlertDialog(
+        onDismissRequest = onDismiss,
+        content = {
+
+            Column(
+                modifier = Modifier.fillMaxWidth().wrapContentHeight()
+                    .background(
+                        MaterialTheme.colorScheme.surfaceContainer,
+                        RoundedCornerShape(corner = CornerSize(12.dp))
+                    )
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    style = MaterialTheme.typography.bodyLarge,
+                    text = "Scan QR code"
+                )
+                ScannerWithPermissions(
+                    modifier = Modifier.heightIn(120.dp, 360.dp),
+                    onScanned = { text ->
+                        onScanned(text)
+                        true // return true to disable the scanner
+                    },
+                    types = listOf(CodeType.QR),
+                    cameraPosition = CameraPosition.BACK,
+                    enableTorch = false
+                )
+                OutlinedButton(
+                    modifier = Modifier.align(Alignment.End),
+                    onClick = onDismiss
+                ) {
+                    Text("Cancel")
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun ConnectingSection(
+    ipAddress: String,
+    port: String,
+    preferredMethod: String?,
+    onCancel: () -> Unit
+) {
+    val text = if (preferredMethod == "webrtc") {
+        "Connecting to remote server..."
+    } else {
+        "Connecting to $ipAddress:$port..."
+    }
+    SectionCard {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
+            )
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cancel")
+            }
+        }
     }
 }
 
@@ -375,14 +633,20 @@ private fun ConnectingSection(ipAddress: String, port: String) {
 private fun ServerInfoSection(
     connectionInfo: ConnectionInfo?,
     serverInfo: ServerInfo?,
+    isWebRTC: Boolean = false,
     onDisconnect: () -> Unit
 ) {
     SectionCard {
         SectionTitle("Server")
 
-        connectionInfo?.let { conn ->
+        val connectionText = if (isWebRTC) {
+            "Connected via WebRTC"
+        } else {
+            connectionInfo?.let { "Connected to ${it.host}:${it.port}" }
+        }
+        connectionText?.let {
             Text(
-                text = "Connected to ${conn.host}:${conn.port}",
+                text = it,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -618,3 +882,5 @@ private fun SendspinSection(
         }
     }
 }
+
+const val webRtcUrlPrefix = "https://app.music-assistant.io/?remote_id="

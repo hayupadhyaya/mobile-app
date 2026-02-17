@@ -244,7 +244,8 @@ class AutoLibrary(
                         option = extras?.getString(
                             MediaIds.QUEUE_OPTION_KEY,
                             QueueOption.REPLACE.name
-                        )?.let { QueueOption.valueOf(it) },
+                        )?.let { QueueOption.valueOf(it) }
+                            ?: QueueOption.REPLACE,
                         radioMode = false
                     )
                 )

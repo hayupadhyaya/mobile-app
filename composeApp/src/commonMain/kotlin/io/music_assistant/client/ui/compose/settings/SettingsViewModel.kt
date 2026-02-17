@@ -24,6 +24,13 @@ class SettingsViewModel(
         apiClient.disconnectByUser()
     }
 
+    fun attemptWebRTCConnection(remoteId: String) {
+        val parsed = io.music_assistant.client.webrtc.model.RemoteId.parse(remoteId)
+        if (parsed != null) {
+            apiClient.connectWebRTC(parsed)
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             // Logout on server and clear token locally
@@ -50,4 +57,14 @@ class SettingsViewModel(
     fun setSendspinCodecPreference(codec: Codec) = settings.setSendspinCodecPreference(codec)
     fun setSendspinHost(host: String) = settings.setSendspinHost(host)
     fun setSendspinUseTls(enabled: Boolean) = settings.setSendspinUseTls(enabled)
+
+    // Connection method preference
+    val preferredConnectionMethod = settings.preferredConnectionMethod
+
+    fun setPreferredConnectionMethod(method: String) = settings.setPreferredConnectionMethod(method)
+
+    // WebRTC settings
+    val webrtcRemoteId = settings.webrtcRemoteId
+
+    fun setWebrtcRemoteId(remoteId: String) = settings.setWebrtcRemoteId(remoteId)
 }

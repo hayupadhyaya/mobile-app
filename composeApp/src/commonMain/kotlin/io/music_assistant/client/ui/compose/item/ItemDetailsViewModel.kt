@@ -322,38 +322,29 @@ class ItemDetailsViewModel(
         }
     }
 
-    fun onPlayClick(option: QueueOption) {
-        viewModelScope.launch {
-            val item = (_state.value.itemState as? DataState.Data)?.data ?: return@launch
-            val queueId = mainDataSource.selectedPlayer?.queueOrPlayerId ?: return@launch
-
-            item.uri?.let { uri ->
-                apiClient.sendRequest(
-                    Request.Library.play(
-                        media = listOf(uri),
-                        queueOrPlayerId = queueId,
-                        option = option,
-                        radioMode = false
-                    )
-                )
-            }
-        }
+    fun onPlayClick(option: QueueOption, radio: Boolean) {
+        (_state.value.itemState as? DataState.Data)?.data?.uri?.let { uriClick(it, option, radio) }
     }
 
-    fun onTrackClick(track: PlayableItem, option: QueueOption) {
+    fun onTrackClick(track: PlayableItem, option: QueueOption, radio: Boolean) {
+        track.uri?.let { uriClick(it, option, radio) }
+    }
+
+    private fun uriClick(
+        uri: String,
+        option: QueueOption,
+        radio: Boolean
+    ) {
         viewModelScope.launch {
             val queueId = mainDataSource.selectedPlayer?.queueOrPlayerId ?: return@launch
-
-            track.uri?.let { uri ->
-                apiClient.sendRequest(
-                    Request.Library.play(
-                        media = listOf(uri),
-                        queueOrPlayerId = queueId,
-                        option = option,
-                        radioMode = false
-                    )
+            apiClient.sendRequest(
+                Request.Library.play(
+                    media = listOf(uri),
+                    queueOrPlayerId = queueId,
+                    option = option,
+                    radioMode = radio
                 )
-            }
+            )
         }
     }
 

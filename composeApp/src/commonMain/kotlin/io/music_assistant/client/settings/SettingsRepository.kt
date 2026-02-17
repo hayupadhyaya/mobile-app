@@ -45,16 +45,53 @@ class SettingsRepository(
         }
     }
 
+    // DEPRECATED: Legacy global token (kept for migration)
     private val _token = MutableStateFlow(
         settings.getStringOrNull("token")?.takeIf { it.isNotBlank() }
     )
     val token = _token.asStateFlow()
 
+    @Deprecated("Use getTokenForServer/setTokenForServer instead")
     fun updateToken(token: String?) {
         if (token != this._token.value) {
             settings.putString("token", token ?: "")
             _token.update { token }
         }
+    }
+
+    /**
+     * Get authentication token for a specific server.
+     * @param serverIdentifier "direct:host:port" or "webrtc:remoteId"
+     */
+    fun getTokenForServer(serverIdentifier: String): String? {
+        return settings.getStringOrNull("token_$serverIdentifier")?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * Save authentication token for a specific server.
+     * @param serverIdentifier "direct:host:port" or "webrtc:remoteId"
+     * @param token Authentication token (null to clear)
+     */
+    fun setTokenForServer(serverIdentifier: String, token: String?) {
+        if (token.isNullOrBlank()) {
+            settings.remove("token_$serverIdentifier")
+        } else {
+            settings.putString("token_$serverIdentifier", token)
+        }
+    }
+
+    /**
+     * Get server identifier for Direct connection.
+     */
+    fun getDirectServerIdentifier(host: String, port: Int): String {
+        return "direct:$host:$port"
+    }
+
+    /**
+     * Get server identifier for WebRTC connection.
+     */
+    fun getWebRTCServerIdentifier(remoteId: String): String {
+        return "webrtc:$remoteId"
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -176,5 +213,39 @@ class SettingsRepository(
     fun setSendspinUseCustomConnection(enabled: Boolean) {
         settings.putBoolean("sendspin_use_custom_connection", enabled)
         _sendspinUseCustomConnection.update { enabled }
+    }
+
+    // Connection method preference
+    private val _preferredConnectionMethod = MutableStateFlow(
+        settings.getString("preferred_connection_method", "direct")
+    )
+    val preferredConnectionMethod = _preferredConnectionMethod.asStateFlow()
+
+    fun setPreferredConnectionMethod(method: String) {
+        settings.putString("preferred_connection_method", method)
+        _preferredConnectionMethod.update { method }
+    }
+
+    // WebRTC Remote Access settings
+    private val _webrtcRemoteId = MutableStateFlow(
+        settings.getString("webrtc_remote_id", "")
+    )
+    val webrtcRemoteId = _webrtcRemoteId.asStateFlow()
+
+    fun setWebrtcRemoteId(remoteId: String) {
+        settings.putString("webrtc_remote_id", remoteId)
+        _webrtcRemoteId.update { remoteId }
+    }
+
+    // Last successful connection mode ("direct" or "webrtc")
+    // Used for autoconnect - reconnects using the last mode that worked
+    private val _lastConnectionMode = MutableStateFlow(
+        settings.getStringOrNull("last_connection_mode")
+    )
+    val lastConnectionMode = _lastConnectionMode.asStateFlow()
+
+    fun setLastConnectionMode(mode: String) {
+        settings.putString("last_connection_mode", mode)
+        _lastConnectionMode.update { mode }
     }
 }
