@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -21,20 +19,20 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.AddToQueue
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAddCircle
 import androidx.compose.material.icons.filled.QueuePlayNext
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -66,6 +64,7 @@ import io.music_assistant.client.ui.compose.common.OverflowMenuOption
 import io.music_assistant.client.ui.compose.common.ToastHost
 import io.music_assistant.client.ui.compose.common.ToastState
 import io.music_assistant.client.ui.compose.common.items.MediaItemAlbum
+import io.music_assistant.client.ui.compose.common.items.MediaItemAlbumRow
 import io.music_assistant.client.ui.compose.common.items.TrackWithMenu
 import io.music_assistant.client.ui.compose.common.providers.ProviderIcon
 import io.music_assistant.client.ui.compose.common.rememberToastState
@@ -86,6 +85,7 @@ fun ItemDetailsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val serverUrl by viewModel.serverUrl.collectAsStateWithLifecycle(null)
     val toastState = rememberToastState()
+    val isRowMode by viewModel.itemsRowMode.collectAsStateWithLifecycle(false)
 
     LaunchedEffect(itemId, mediaType) {
         viewModel.loadItem(itemId, mediaType, providerId)
@@ -115,12 +115,15 @@ fun ItemDetailsScreen(
             item = item,
             playlistActions = playlistActions.takeIf { item is AppMediaItem.Track || item is AppMediaItem.Album },
             libraryActions = libraryActions,
+            isRowMode = isRowMode,
+            onToggleViewMode = viewModel::toggleItemsRowMode,
         )
 
         ItemDetailsContent(
             state = state,
             serverUrl = serverUrl,
             toastState = toastState,
+            isRowMode = isRowMode,
             onSubItemClick = { item ->
                 when (item) {
                     is AppMediaItem.Artist,
@@ -158,6 +161,8 @@ private fun ItemDetailsTopBar(
     onPlayClick: (QueueOption, Boolean) -> Unit,
     libraryActions: ActionsViewModel.LibraryActions,
     playlistActions: ActionsViewModel.PlaylistActions?,
+    isRowMode: Boolean,
+    onToggleViewMode: () -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showPlaylistDialog by rememberSaveable { mutableStateOf(false) }
@@ -196,11 +201,16 @@ private fun ItemDetailsTopBar(
                 }
             }
             item?.let {
-                OutlinedButton(
+                IconButton(onClick = onToggleViewMode) {
+                    Icon(
+                        imageVector = if (isRowMode) Icons.Default.GridView else Icons.AutoMirrored.Filled.ViewList,
+                        contentDescription = "Toggle view mode"
+                    )
+                }
+                IconButton(
                     onClick = { onPlayClick(QueueOption.REPLACE, false) },
                 ) {
-                    Icon(Icons.Default.PlayArrow, null)
-                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Default.PlayArrow, "Play now")
                 }
 
                 OverflowMenu(
@@ -343,6 +353,7 @@ private fun ItemDetailsContent(
     state: ItemDetailsViewModel.State,
     serverUrl: String?,
     toastState: ToastState,
+    isRowMode: Boolean,
     onSubItemClick: (AppMediaItem) -> Unit,
     onTrackClick: (PlayableItem, QueueOption, Boolean) -> Unit,
     playlistActions: ActionsViewModel.PlaylistActions,
@@ -397,13 +408,28 @@ private fun ItemDetailsContent(
                                     item(span = { GridItemSpan(maxLineSpan) }) {
                                         SectionHeader("Albums")
                                     }
-                                    items(albumsState.data) { album ->
-                                        MediaItemAlbum(
-                                            item = album,
-                                            serverUrl = serverUrl,
-                                            onClick = { onSubItemClick(album) },
-                                            providerIconFetcher = providerIconFetcher,
-                                        )
+                                    items(
+                                        albumsState.data,
+                                        span = if (isRowMode) {
+                                            { GridItemSpan(maxLineSpan) }
+                                        } else null
+                                    ) { album ->
+                                        if (isRowMode) {
+                                            MediaItemAlbumRow(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                item = album,
+                                                serverUrl = serverUrl,
+                                                onClick = { onSubItemClick(album) },
+                                                providerIconFetcher = providerIconFetcher,
+                                            )
+                                        } else {
+                                            MediaItemAlbum(
+                                                item = album,
+                                                serverUrl = serverUrl,
+                                                onClick = { onSubItemClick(album) },
+                                                providerIconFetcher = providerIconFetcher,
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -436,10 +462,16 @@ private fun ItemDetailsContent(
                                     )
                                 }
                                 tracksState.data.forEachIndexed { index, track ->
-                                    item {
+                                    item(
+                                        span = if (isRowMode) {
+                                            { GridItemSpan(maxLineSpan) }
+                                        } else null
+                                    ) {
                                         TrackWithMenu(
+                                            modifier = if (isRowMode) Modifier.fillMaxWidth() else Modifier,
                                             item = track,
                                             serverUrl = serverUrl,
+                                            rowMode = isRowMode,
                                             onTrackPlayOption = onTrackClick,
                                             // Don't show "add to playlist" for playlist items
                                             playlistActions = playlistActions

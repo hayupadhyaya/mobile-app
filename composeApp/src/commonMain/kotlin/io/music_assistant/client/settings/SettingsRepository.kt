@@ -248,4 +248,15 @@ class SettingsRepository(
         settings.putString("last_connection_mode", mode)
         _lastConnectionMode.update { mode }
     }
+
+    // UI preferences
+    private val _itemsRowMode = MutableStateFlow(
+        settings.getBoolean("items_row_mode", false)
+    )
+    val itemsRowMode = _itemsRowMode.asStateFlow()
+
+    fun setItemsRowMode(enabled: Boolean) {
+        settings.putBoolean("items_row_mode", enabled)
+        _itemsRowMode.update { enabled }
+    }
 }

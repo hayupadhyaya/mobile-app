@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +65,7 @@ fun LibraryScreen(
     val actionsViewModel: ActionsViewModel = koinInject()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val serverUrl by viewModel.serverUrl.collectAsStateWithLifecycle(null)
+    val isRowMode by viewModel.itemsRowMode.collectAsStateWithLifecycle(false)
     val toastState = rememberToastState()
 
     // Map MediaType to Tab
@@ -94,10 +97,13 @@ fun LibraryScreen(
             onBack = onBack,
             tabs = state.tabs,
             onTabSelected = viewModel::onTabSelected,
+            isRowMode = isRowMode,
+            onToggleViewMode = viewModel::toggleItemsRowMode,
         )
         Library(
             state = state,
             serverUrl = serverUrl,
+            isRowMode = isRowMode,
             toastState = toastState,
 
             onItemClick = onItemClick,
@@ -124,7 +130,9 @@ fun LibraryScreen(
 private fun LibraryTopBar(
     onBack: () -> Unit,
     tabs: List<LibraryViewModel.TabState>,
-    onTabSelected: (LibraryViewModel.Tab) -> Unit
+    onTabSelected: (LibraryViewModel.Tab) -> Unit,
+    isRowMode: Boolean,
+    onToggleViewMode: () -> Unit,
 ) {
     Surface(
         modifier = Modifier
@@ -142,7 +150,9 @@ private fun LibraryTopBar(
             }
             // Tab row
             PrimaryScrollableTabRow(
+                modifier = Modifier.weight(1f),
                 containerColor = Color.Transparent,
+                edgePadding = 0.dp,
                 selectedTabIndex = tabs.indexOfFirst { it.isSelected }
             ) {
                 tabs.forEach { tabState ->
@@ -164,6 +174,12 @@ private fun LibraryTopBar(
                     )
                 }
             }
+            IconButton(onClick = onToggleViewMode) {
+                Icon(
+                    imageVector = if (isRowMode) Icons.Default.GridView else Icons.AutoMirrored.Filled.ViewList,
+                    contentDescription = "Toggle view mode"
+                )
+            }
         }
     }
 }
@@ -172,6 +188,7 @@ private fun LibraryTopBar(
 private fun Library(
     state: LibraryViewModel.State,
     serverUrl: String?,
+    isRowMode: Boolean,
     toastState: io.music_assistant.client.ui.compose.common.ToastState,
     onItemClick: (AppMediaItem) -> Unit,
     onTrackClick: (PlayableItem, QueueOption, Boolean) -> Unit,
@@ -217,6 +234,7 @@ private fun Library(
                 TabContent(
                     tabState = selectedTab,
                     serverUrl = serverUrl,
+                    isRowMode = isRowMode,
                     onItemClick = onItemClick,
                     onTrackClick = onTrackClick,
                     onCreatePlaylistClick = onCreatePlaylistClick,
@@ -287,6 +305,7 @@ private fun CreatePlaylistDialog(
 private fun TabContent(
     tabState: LibraryViewModel.TabState,
     serverUrl: String?,
+    isRowMode: Boolean,
     onItemClick: (AppMediaItem) -> Unit,
     onTrackClick: (PlayableItem, QueueOption, Boolean) -> Unit,
     onCreatePlaylistClick: () -> Unit,
@@ -357,6 +376,7 @@ private fun TabContent(
                                 serverUrl = serverUrl,
                                 isLoadingMore = tabState.isLoadingMore,
                                 hasMore = tabState.hasMore,
+                                isRowMode = isRowMode,
                                 onItemClick = onItemClick,
                                 onTrackClick = onTrackClick,
                                 onLoadMore = onLoadMore,

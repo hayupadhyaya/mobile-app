@@ -48,6 +48,7 @@ fun TrackWithMenu(
     modifier: Modifier = Modifier,
     item: PlayableItem,
     itemSize: Dp = 96.dp,
+    rowMode: Boolean = false,
     onTrackPlayOption: ((PlayableItem, QueueOption, Boolean) -> Unit),
     onItemClick: ((PlayableItem) -> Unit)? = null,
     playlistActions: ActionsViewModel.PlaylistActions? = null,
@@ -68,15 +69,25 @@ fun TrackWithMenu(
         providerIconFetcher = providerIconFetcher,
         serverUrl = serverUrl,
         itemComposable = { mod, itm, srvUrl, onClick, size, showSubtitle, iconFetcher ->
-            MediaItemTrack(
-                modifier = mod,
-                item = itm,
-                serverUrl = srvUrl,
-                onClick = onClick,
-                itemSize = size,
-                showSubtitle = showSubtitle,
-                providerIconFetcher = iconFetcher
-            )
+            if (rowMode) {
+                MediaItemTrackRow(
+                    modifier = mod,
+                    item = itm,
+                    serverUrl = srvUrl,
+                    onClick = { onClick(it) },
+                    providerIconFetcher = iconFetcher
+                )
+            } else {
+                MediaItemTrack(
+                    modifier = mod,
+                    item = itm,
+                    serverUrl = srvUrl,
+                    onClick = onClick,
+                    itemSize = size,
+                    showSubtitle = showSubtitle,
+                    providerIconFetcher = iconFetcher
+                )
+            }
         }
     )
 }
@@ -86,6 +97,7 @@ fun EpisodeWithMenu(
     modifier: Modifier = Modifier,
     item: PlayableItem,
     itemSize: Dp = 96.dp,
+    rowMode: Boolean = false,
     onTrackPlayOption: ((PlayableItem, QueueOption, Boolean) -> Unit),
     onItemClick: ((PlayableItem) -> Unit)? = null,
     playlistActions: ActionsViewModel.PlaylistActions? = null,
@@ -106,15 +118,25 @@ fun EpisodeWithMenu(
         providerIconFetcher = providerIconFetcher,
         serverUrl = serverUrl,
         itemComposable = { mod, itm, srvUrl, onClick, size, showSubtitle, iconFetcher ->
-            MediaItemPodcastEpisode(
-                modifier = mod,
-                item = itm,
-                serverUrl = srvUrl,
-                onClick = onClick,
-                itemSize = size,
-                showSubtitle = showSubtitle,
-                providerIconFetcher = iconFetcher
-            )
+            if (rowMode) {
+                MediaItemPodcastEpisodeRow(
+                    modifier = mod,
+                    item = itm,
+                    serverUrl = srvUrl,
+                    onClick = { onClick(it) },
+                    providerIconFetcher = iconFetcher
+                )
+            } else {
+                MediaItemPodcastEpisode(
+                    modifier = mod,
+                    item = itm,
+                    serverUrl = srvUrl,
+                    onClick = onClick,
+                    itemSize = size,
+                    showSubtitle = showSubtitle,
+                    providerIconFetcher = iconFetcher
+                )
+            }
         }
     )
 }
@@ -124,6 +146,7 @@ fun RadioWithMenu(
     modifier: Modifier = Modifier,
     item: PlayableItem,
     itemSize: Dp = 96.dp,
+    rowMode: Boolean = false,
     onTrackPlayOption: ((PlayableItem, QueueOption, Boolean) -> Unit),
     onItemClick: ((PlayableItem) -> Unit)? = null,
     playlistActions: ActionsViewModel.PlaylistActions? = null,
@@ -144,15 +167,25 @@ fun RadioWithMenu(
         providerIconFetcher = providerIconFetcher,
         serverUrl = serverUrl,
         itemComposable = { mod, itm, srvUrl, onClick, size, showSubtitle, iconFetcher ->
-            MediaItemRadio(
-                modifier = mod,
-                item = itm,
-                serverUrl = srvUrl,
-                onClick = onClick,
-                itemSize = size,
-                showSubtitle = showSubtitle,
-                providerIconFetcher = iconFetcher
-            )
+            if (rowMode) {
+                MediaItemRadioRow(
+                    modifier = mod,
+                    item = itm,
+                    serverUrl = srvUrl,
+                    onClick = { onClick(it) },
+                    providerIconFetcher = iconFetcher
+                )
+            } else {
+                MediaItemRadio(
+                    modifier = mod,
+                    item = itm,
+                    serverUrl = srvUrl,
+                    onClick = onClick,
+                    itemSize = size,
+                    showSubtitle = showSubtitle,
+                    providerIconFetcher = iconFetcher
+                )
+            }
         }
     )
 }

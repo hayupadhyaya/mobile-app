@@ -15,6 +15,7 @@ import io.music_assistant.client.data.model.server.ServerMediaItem
 import io.music_assistant.client.data.model.server.events.MediaItemAddedEvent
 import io.music_assistant.client.data.model.server.events.MediaItemDeletedEvent
 import io.music_assistant.client.data.model.server.events.MediaItemUpdatedEvent
+import io.music_assistant.client.settings.SettingsRepository
 import io.music_assistant.client.ui.compose.common.DataState
 import io.music_assistant.client.utils.SessionState
 import io.music_assistant.client.utils.resultAs
@@ -30,7 +31,8 @@ import kotlinx.coroutines.launch
 @OptIn(FlowPreview::class)
 class LibraryViewModel(
     private val apiClient: ServiceClient,
-    private val mainDataSource: MainDataSource
+    private val mainDataSource: MainDataSource,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     companion object Companion {
@@ -62,6 +64,12 @@ class LibraryViewModel(
 
     val serverUrl =
         apiClient.sessionState.map { (it as? SessionState.Connected)?.serverInfo?.baseUrl }
+
+    val itemsRowMode = settingsRepository.itemsRowMode
+
+    fun toggleItemsRowMode() {
+        settingsRepository.setItemsRowMode(!settingsRepository.itemsRowMode.value)
+    }
 
     private val _state = MutableStateFlow(
         State(

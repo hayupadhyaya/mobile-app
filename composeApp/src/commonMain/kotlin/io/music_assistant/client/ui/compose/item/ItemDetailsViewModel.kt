@@ -17,6 +17,7 @@ import io.music_assistant.client.data.model.server.events.MediaItemAddedEvent
 import io.music_assistant.client.data.model.server.events.MediaItemDeletedEvent
 import io.music_assistant.client.data.model.server.events.MediaItemUpdatedEvent
 import io.music_assistant.client.ui.compose.common.DataState
+import io.music_assistant.client.settings.SettingsRepository
 import io.music_assistant.client.utils.SessionState
 import io.music_assistant.client.utils.resultAs
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,6 +31,7 @@ import kotlinx.coroutines.launch
 class ItemDetailsViewModel(
     private val apiClient: ServiceClient,
     private val mainDataSource: MainDataSource,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     data class State(
@@ -46,6 +48,12 @@ class ItemDetailsViewModel(
 
     private val _toasts = MutableSharedFlow<String>()
     val toasts = _toasts.asSharedFlow()
+
+    val itemsRowMode = settingsRepository.itemsRowMode
+
+    fun toggleItemsRowMode() {
+        settingsRepository.setItemsRowMode(!settingsRepository.itemsRowMode.value)
+    }
 
     private val _state = MutableStateFlow(
         State(

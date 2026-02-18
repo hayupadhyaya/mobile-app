@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -778,4 +780,194 @@ fun BoxScope.Badges(
     } else {
         providerIconFetcher?.invoke(modifier.background(Color.Gray, CircleShape), item.provider)
     }
+}
+
+// ── Row layout ────────────────────────────────────────────────────────────────
+
+private val ROW_IMAGE_SIZE = 48.dp
+
+@Composable
+fun MediaItemRow(
+    modifier: Modifier = Modifier,
+    name: String,
+    subtitle: String?,
+    imageContent: @Composable BoxScope.() -> Unit,
+    onClick: () -> Unit,
+) {
+    val titleStyle = MaterialTheme.typography.bodyMedium
+    val twoLineHeight = with(LocalDensity.current) { (titleStyle.lineHeight.toPx() * 2).toDp() }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.size(ROW_IMAGE_SIZE)) { imageContent() }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier.fillMaxWidth().height(twoLineHeight),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = name,
+                    style = titleStyle,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            if (!subtitle.isNullOrEmpty()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MediaItemTrackRow(
+    modifier: Modifier = Modifier,
+    item: PlayableItem,
+    serverUrl: String?,
+    onClick: (PlayableItem) -> Unit,
+    providerIconFetcher: (@Composable (Modifier, String) -> Unit)?
+) {
+    MediaItemRow(
+        modifier = modifier,
+        name = item.name,
+        subtitle = item.subtitle,
+        imageContent = {
+            TrackImage(ROW_IMAGE_SIZE, item, serverUrl)
+            (item as? AppMediaItem)?.let { Badges(item = it, providerIconFetcher = providerIconFetcher) }
+        },
+        onClick = { onClick(item) }
+    )
+}
+
+@Composable
+fun MediaItemAlbumRow(
+    modifier: Modifier = Modifier,
+    item: AppMediaItem.Album,
+    serverUrl: String?,
+    onClick: (AppMediaItem.Album) -> Unit,
+    providerIconFetcher: (@Composable (Modifier, String) -> Unit)?
+) {
+    MediaItemRow(
+        modifier = modifier,
+        name = item.name,
+        subtitle = item.subtitle,
+        imageContent = {
+            AlbumImage(ROW_IMAGE_SIZE, item, serverUrl)
+            Badges(item = item, providerIconFetcher = providerIconFetcher)
+        },
+        onClick = { onClick(item) }
+    )
+}
+
+@Composable
+fun MediaItemArtistRow(
+    modifier: Modifier = Modifier,
+    item: AppMediaItem.Artist,
+    serverUrl: String?,
+    onClick: (AppMediaItem.Artist) -> Unit,
+    providerIconFetcher: (@Composable (Modifier, String) -> Unit)?
+) {
+    MediaItemRow(
+        modifier = modifier,
+        name = item.name,
+        subtitle = item.subtitle,
+        imageContent = {
+            ArtistImage(ROW_IMAGE_SIZE, item, serverUrl)
+            Badges(item = item, providerIconFetcher = providerIconFetcher)
+        },
+        onClick = { onClick(item) }
+    )
+}
+
+@Composable
+fun MediaItemPlaylistRow(
+    modifier: Modifier = Modifier,
+    item: AppMediaItem.Playlist,
+    serverUrl: String?,
+    onClick: (AppMediaItem.Playlist) -> Unit,
+    providerIconFetcher: (@Composable (Modifier, String) -> Unit)?
+) {
+    MediaItemRow(
+        modifier = modifier,
+        name = item.name,
+        subtitle = item.subtitle,
+        imageContent = {
+            PlaylistImage(ROW_IMAGE_SIZE, item, serverUrl)
+            Badges(item = item, providerIconFetcher = providerIconFetcher)
+        },
+        onClick = { onClick(item) }
+    )
+}
+
+@Composable
+fun MediaItemPodcastRow(
+    modifier: Modifier = Modifier,
+    item: AppMediaItem.Podcast,
+    serverUrl: String?,
+    onClick: (AppMediaItem.Podcast) -> Unit,
+    providerIconFetcher: (@Composable (Modifier, String) -> Unit)?
+) {
+    MediaItemRow(
+        modifier = modifier,
+        name = item.name,
+        subtitle = item.subtitle,
+        imageContent = {
+            PodcastImage(ROW_IMAGE_SIZE, item, serverUrl)
+            Badges(item = item, providerIconFetcher = providerIconFetcher)
+        },
+        onClick = { onClick(item) }
+    )
+}
+
+@Composable
+fun MediaItemPodcastEpisodeRow(
+    modifier: Modifier = Modifier,
+    item: PlayableItem,
+    serverUrl: String?,
+    onClick: (PlayableItem) -> Unit,
+    providerIconFetcher: (@Composable (Modifier, String) -> Unit)?
+) {
+    MediaItemRow(
+        modifier = modifier,
+        name = item.name,
+        subtitle = item.subtitle,
+        imageContent = {
+            PodcastEpisodeImage(ROW_IMAGE_SIZE, item, serverUrl)
+            (item as? AppMediaItem)?.let { Badges(item = it, providerIconFetcher = providerIconFetcher) }
+        },
+        onClick = { onClick(item) }
+    )
+}
+
+@Composable
+fun MediaItemRadioRow(
+    modifier: Modifier = Modifier,
+    item: PlayableItem,
+    serverUrl: String?,
+    onClick: (PlayableItem) -> Unit,
+    providerIconFetcher: (@Composable (Modifier, String) -> Unit)?
+) {
+    MediaItemRow(
+        modifier = modifier,
+        name = item.name,
+        subtitle = item.subtitle,
+        imageContent = {
+            RadioImage(ROW_IMAGE_SIZE, item, serverUrl)
+            (item as? AppMediaItem)?.let { Badges(item = it, providerIconFetcher = providerIconFetcher) }
+        },
+        onClick = { onClick(item) }
+    )
 }
