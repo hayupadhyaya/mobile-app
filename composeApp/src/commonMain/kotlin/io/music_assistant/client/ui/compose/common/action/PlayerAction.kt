@@ -15,7 +15,7 @@ sealed interface PlayerAction {
     data class GroupManage(val toAdd: List<String>? = null, val toRemove: List<String>? = null) :
         PlayerAction
 
-    data object ToggleMute : PlayerAction
+    data class ToggleMute(val isMutedNow: Boolean) : PlayerAction
     data class ToggleShuffle(val current: Boolean) : PlayerAction
     data class ToggleRepeatMode(val current: RepeatMode) : PlayerAction
     data class SeekTo(val position: Long) : PlayerAction

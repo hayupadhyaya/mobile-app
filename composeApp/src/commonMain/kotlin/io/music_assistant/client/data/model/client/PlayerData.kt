@@ -52,6 +52,7 @@ data class PlayerData(
         val id: String,
         val parentId: String,
         val volume: Float?,
+        val isMuted: Boolean?,
         val name: String,
         val isBound: Boolean,
     )

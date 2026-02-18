@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package io.music_assistant.client.ui.compose.home
 
 import androidx.compose.foundation.background
@@ -17,21 +15,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -42,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -154,13 +143,13 @@ fun CompactPlayerItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FullPlayerItem(
     modifier: Modifier,
     item: PlayerData,
     isLocal: Boolean,
     serverUrl: String?,
-    simplePlayerAction: (String, PlayerAction) -> Unit,
     playerAction: (PlayerData, PlayerAction) -> Unit,
     onFavoriteClick: (AppMediaItem) -> Unit, // FIXME inconsistent stuff happening
 ) {
@@ -168,105 +157,18 @@ fun FullPlayerItem(
     val primaryContainer = MaterialTheme.colorScheme.primaryContainer
     val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
 
-    var showGroupDialog by remember { mutableStateOf(false) }
 
-    // Group dialog
-    if (showGroupDialog) {
-        AlertDialog(
-            onDismissRequest = { showGroupDialog = false },
-            title = { Text("Group settings") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Non-scrollable Done button at top
-                    OutlinedButton(
-                        onClick = { showGroupDialog = false },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                    ) {
-                        Text("Done")
-                    }
-
-                    // Scrollable list of players
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Current player at the very top
-                        item {
-                            GroupPlayerVolumeItem(
-                                playerId = item.player.id,
-                                playerName = item.player.name,
-                                volume = item.player.volumeLevel,
-                                simplePlayerAction = simplePlayerAction
-                            )
-                        }
-
-                        // Bound players
-                        val boundChildren = item.groupChildren.filter { it.isBound }
-                        items(boundChildren, key = { "${it.id}_${it.volume}" }) { child ->
-                            GroupPlayerVolumeItem(
-                                playerId = child.id,
-                                playerName = child.name,
-                                volume = child.volume,
-                                simplePlayerAction = simplePlayerAction,
-                                bindItem = child,
-                            )
-                        }
-
-                        // Unbound players
-                        val unboundChildren = item.groupChildren.filter { !it.isBound }
-                        items(unboundChildren, key = { it.id }) { child ->
-                            GroupPlayerVolumeItem(
-                                playerId = child.id,
-                                playerName = child.name,
-                                volume = child.volume,
-                                simplePlayerAction = simplePlayerAction,
-                                bindItem = child,
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {}
-        )
-    }
 
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = item.player.providerType.takeIf { !isLocal } ?: "",
-                fontSize = 12.sp,
-            )
-            when {
-                item.groupChildren.isEmpty() ->
-                    OutlinedButton(
-                        enabled = false,
-                        onClick = {}) {
-                        Text("No group options")
-                    }
-
-                item.groupChildren.none { it.isBound } ->
-                    OutlinedButton(
-                        enabled = true,
-                        onClick = { showGroupDialog = true }
-                    ) {
-                        Text("Group")
-                    }
-
-                else ->
-                    Button(enabled = true, onClick = { showGroupDialog = true }) {
-                        Text("Manage group")
-                    }
-            }
-        }
+        Text(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            text = item.player.providerType.takeIf { !isLocal } ?: "",
+            fontSize = 12.sp,
+        )
         Box(
             modifier = Modifier
                 .weight(1f, fill = false)
@@ -429,102 +331,6 @@ fun FullPlayerItem(
             enabled = !item.player.isAnnouncing,
             showVolumeButtons = false,
             mainButtonSize = 64.dp
-        )
-    }
-}
-
-/**
- * Group player volume item with name and volume slider
- */
-@Composable
-private fun GroupPlayerVolumeItem(
-    playerId: String,
-    playerName: String,
-    volume: Float?,
-    simplePlayerAction: (String, PlayerAction) -> Unit,
-    bindItem: PlayerData.Bind? = null,
-) {
-    var currentVolume by remember(volume) {
-        mutableStateOf(volume ?: 0f)
-    }
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy((-4).dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                modifier = Modifier.alpha(if (bindItem?.isBound != false) 1f else 0.4f).weight(1f),
-                text = playerName,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            // Show button only for non-current players (when bindItem is provided)
-            bindItem?.let { bind ->
-                val itemId = listOf(playerId)
-                IconButton(
-                    onClick = {
-                        simplePlayerAction(
-                            bind.parentId,
-                            PlayerAction.GroupManage(
-                                toAdd = itemId.takeIf { !bind.isBound },
-                                toRemove = itemId.takeIf { bind.isBound }
-                            )
-                        )
-                    }
-                ) {
-                    Icon(
-                        imageVector = if (bindItem.isBound) Icons.Default.Remove else Icons.Default.Add,
-                        contentDescription = if (bindItem.isBound) "Remove from group" else "Add to group",
-                        tint = if (bindItem.isBound)
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-
-        val sliderEnabled = volume != null && bindItem?.isBound != false
-        Slider(
-            modifier = Modifier.fillMaxWidth().alpha(if (sliderEnabled) 1f else 0.4f),
-            value = currentVolume,
-            valueRange = 0f..100f,
-            enabled = sliderEnabled,
-            onValueChange = {
-                currentVolume = it
-            },
-            onValueChangeFinished = {
-                simplePlayerAction(
-                    playerId,
-                    PlayerAction.VolumeSet(currentVolume.toDouble())
-                )
-            },
-            thumb = {
-                SliderDefaults.Thumb(
-                    interactionSource = remember { MutableInteractionSource() },
-                    thumbSize = DpSize(16.dp, 16.dp),
-                    colors = SliderDefaults.colors()
-                        .copy(thumbColor = MaterialTheme.colorScheme.secondary),
-                )
-            },
-            track = { sliderState ->
-                SliderDefaults.Track(
-                    sliderState = sliderState,
-                    thumbTrackGapSize = 0.dp,
-                    trackInsideCornerSize = 0.dp,
-                    drawStopIndicator = null,
-                    modifier = Modifier.height(4.dp)
-                )
-            }
         )
     }
 }

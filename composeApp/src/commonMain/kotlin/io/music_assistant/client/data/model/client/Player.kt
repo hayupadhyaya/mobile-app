@@ -24,12 +24,20 @@ data class Player(
     val groupVolume: Float?,
 ) {
 
-    val displayName =
-        "$name${groupChildren?.takeIf { it.size > 1 }?.size?.let { " +${it - 1}" } ?: ""}"
+    val isGroup = volumeLevel == null && groupVolume != null
+
+    val displayName: String = run {
+        val counter = groupChildren?.takeIf { isGroup || it.size > 1 }?.size
+        val suffix = if (counter != null) {
+            if (isGroup) " ($counter)" else " +${counter - 1}"
+        } else ""
+        "$name$suffix"
+    }
 
     val providerType = provider.substringBefore("--")
 
-    val currentVolume = if (groupChildren?.isNotEmpty() == true) groupVolume else volumeLevel
+    val currentVolume =
+        if (isGroup || groupChildren?.isNotEmpty() == true) groupVolume else volumeLevel
 
     fun asBindFor(other: Player): PlayerData.Bind? {
         if (id == other.id) return null
@@ -39,6 +47,7 @@ data class Player(
             parentId = other.id,
             name = name,
             volume = volumeLevel,
+            isMuted = volumeMuted.takeIf { canMute },
             isBound = other.groupChildren?.contains(id) == true,
         )
     }

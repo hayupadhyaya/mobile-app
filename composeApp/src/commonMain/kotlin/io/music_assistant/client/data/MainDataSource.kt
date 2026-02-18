@@ -254,6 +254,7 @@ class MainDataSource(
                                     }
                                 )
                             }
+
                             is DataState.Stale -> {
                                 // Handle stale state - preserve data structure with stale marker
                                 val groupedPlayersToHide = playersState.data
@@ -321,19 +322,27 @@ class MainDataSource(
                                             // New WebSocket connection needs auth command sent
                                             launch {
                                                 // Get token for current server
-                                                val serverIdentifier = when (val state = apiClient.sessionState.value) {
+                                                val serverIdentifier = when (val state =
+                                                    apiClient.sessionState.value) {
                                                     is SessionState.Connected.Direct -> {
                                                         state.connectionInfo?.let { connInfo ->
-                                                            settings.getDirectServerIdentifier(connInfo.host, connInfo.port)
+                                                            settings.getDirectServerIdentifier(
+                                                                connInfo.host,
+                                                                connInfo.port
+                                                            )
                                                         }
                                                     }
+
                                                     is SessionState.Connected.WebRTC -> {
                                                         settings.getWebRTCServerIdentifier(state.remoteId.rawId)
                                                     }
+
                                                     else -> null
                                                 }
 
-                                                val token = serverIdentifier?.let { settings.getTokenForServer(it) }
+                                                val token = serverIdentifier?.let {
+                                                    settings.getTokenForServer(it)
+                                                }
                                                     ?: settings.token.value // Fallback to legacy global token
 
                                                 if (token != null) {
@@ -347,6 +356,7 @@ class MainDataSource(
                                             // Sendspin is still running, will reconnect on its own
                                             // Server events will keep data fresh after auth succeeds
                                         }
+
                                         StaleReason.PERSISTENT_ERROR -> {
                                             // Long disconnection - fetch fresh data
                                             log.i { "Recovery from persistent error - fetching fresh data" }
@@ -359,6 +369,7 @@ class MainDataSource(
                                         }
                                     }
                                 }
+
                                 is DataState.Data -> {
                                     // Already have data (shouldn't happen, but handle gracefully)
                                     log.w { "Connected while already in Data state - refreshing anyway" }
@@ -366,6 +377,7 @@ class MainDataSource(
                                     updatePlayersAndQueues()
                                     // Don't reinit Sendspin if already running
                                 }
+
                                 is DataState.Loading, is DataState.NoData, is DataState.Error -> {
                                     // Fresh connection or error recovery - show loading
                                     _serverPlayers.update { DataState.Loading() }
@@ -398,6 +410,7 @@ class MainDataSource(
                                     )
                                 }
                             }
+
                             is DataState.Stale -> {
                                 // Already stale - update reason if needed, preserve original disconnectedAt
                                 if (currentState.reason != StaleReason.RECONNECTING) {
@@ -412,6 +425,7 @@ class MainDataSource(
                                 }
                                 // else: already Stale(RECONNECTING), do nothing
                             }
+
                             is DataState.Loading, is DataState.NoData, is DataState.Error -> {
                                 // No data to preserve - stay in current state
                                 log.d { "Reconnecting with no data to preserve (state: ${currentState::class.simpleName})" }
@@ -457,8 +471,9 @@ class MainDataSource(
                                             is DataState.Stale -> currentState.data
                                             else -> throw IllegalStateException()
                                         }
-                                        val originalDisconnectedAt = (currentState as? DataState.Stale)?.disconnectedAt
-                                            ?: currentTimeMillis()
+                                        val originalDisconnectedAt =
+                                            (currentState as? DataState.Stale)?.disconnectedAt
+                                                ?: currentTimeMillis()
 
                                         log.w { "Persistent connection error - preserving ${(data as? List<*>)?.size ?: 0} players as stale" }
                                         _serverPlayers.update {
@@ -472,6 +487,7 @@ class MainDataSource(
                                         // Stop Sendspin (can't stream without connection)
                                         stopSendspin()
                                     }
+
                                     is DataState.Loading, is DataState.NoData, is DataState.Error -> {
                                         // No data to preserve - transition to NoData
                                         log.w { "Persistent error with no data to preserve" }
@@ -519,7 +535,8 @@ class MainDataSource(
                 // Only refresh queue if we have live data and are authenticated
                 // Don't try to load during Stale state - will error with auth issues
                 val sessionState = apiClient.sessionState.value
-                val isAuthenticated = (sessionState as? SessionState.Connected)?.dataConnectionState == DataConnectionState.Authenticated
+                val isAuthenticated =
+                    (sessionState as? SessionState.Connected)?.dataConnectionState == DataConnectionState.Authenticated
 
                 if (isAuthenticated) {
                     (playersData.value as? DataState.Data)?.data?.let { list ->
@@ -576,6 +593,7 @@ class MainDataSource(
                     log.d { "Sendspin already connected - skipping reinitialization" }
                     return
                 }
+
                 is SendspinConnectionState.Error -> {
                     // Check if it's a transient error with auto-retry in progress
                     if (state.error is SendspinError.Transient && state.error.willRetry) {
@@ -590,6 +608,7 @@ class MainDataSource(
                     }
                     log.i { "Sendspin has error: $errorMsg - reinitializing" }
                 }
+
                 is SendspinConnectionState.Advertising,
                 SendspinConnectionState.Idle -> {
                     log.i { "Sendspin in ${state::class.simpleName} state - reinitializing" }
@@ -749,6 +768,10 @@ class MainDataSource(
                     )
                 )
 
+                is PlayerAction.ToggleMute -> apiClient.sendRequest(
+                    Request.Player.setMute(playerId = playerId, !action.isMutedNow)
+                )
+
 
                 is PlayerAction.VolumeSet -> apiClient.sendRequest(
                     Request.Player.setVolume(
@@ -889,8 +912,8 @@ class MainDataSource(
                     )
                 )
 
-                PlayerAction.ToggleMute -> apiClient.sendRequest(
-                    Request.Player.setMute(playerId = data.playerId, !data.player.volumeMuted)
+                is PlayerAction.ToggleMute -> apiClient.sendRequest(
+                    Request.Player.setMute(playerId = data.playerId, !action.isMutedNow)
                 )
 
                 is PlayerAction.GroupManage -> apiClient.sendRequest(
