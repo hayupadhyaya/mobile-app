@@ -121,6 +121,7 @@ fun SessionState.Connected.update(
         authProcessState = authProcessState,
         wasAutoLogin = wasAutoLogin
     )
+
     is SessionState.Connected.WebRTC -> copy(
         serverInfo = serverInfo,
         user = user,
@@ -164,6 +165,7 @@ fun SessionState.Reconnecting.update(
         authProcessState = authProcessState,
         wasAutoLogin = wasAutoLogin
     )
+
     is SessionState.Reconnecting.WebRTC -> copy(
         serverInfo = serverInfo,
         user = user,
@@ -190,6 +192,7 @@ suspend fun SessionState.Connected.sendMessage(message: JsonObject) {
         is SessionState.Connected.Direct -> {
             session.sendSerialized(message)
         }
+
         is SessionState.Connected.WebRTC -> {
             val json = myJson.encodeToString(JsonObject.serializer(), message)
             manager.send(json)

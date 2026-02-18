@@ -38,7 +38,7 @@ fun OverflowMenu(
                         option.onClick()
                         expanded = false
                     },
-                    leadingIcon = option.icon?.let{
+                    leadingIcon = option.icon?.let {
                         {
                             Icon(
                                 imageVector = it,

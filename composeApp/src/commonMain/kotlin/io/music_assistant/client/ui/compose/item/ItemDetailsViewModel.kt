@@ -16,8 +16,8 @@ import io.music_assistant.client.data.model.server.ServerMediaItem
 import io.music_assistant.client.data.model.server.events.MediaItemAddedEvent
 import io.music_assistant.client.data.model.server.events.MediaItemDeletedEvent
 import io.music_assistant.client.data.model.server.events.MediaItemUpdatedEvent
-import io.music_assistant.client.ui.compose.common.DataState
 import io.music_assistant.client.settings.SettingsRepository
+import io.music_assistant.client.ui.compose.common.DataState
 import io.music_assistant.client.utils.SessionState
 import io.music_assistant.client.utils.resultAs
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -38,7 +38,7 @@ class ItemDetailsViewModel(
         val connectionState: SessionState,
         val itemState: DataState<AppMediaItem>,
         val albumsState: DataState<List<AppMediaItem.Album>>,
-        val tracksState: DataState<List<PlayableItem>>,
+        val playableItemsState: DataState<List<PlayableItem>>,
     )
 
     private val connectionState = apiClient.sessionState
@@ -60,7 +60,7 @@ class ItemDetailsViewModel(
             connectionState = SessionState.Disconnected.Initial,
             itemState = DataState.Loading(),
             albumsState = DataState.Loading(),
-            tracksState = DataState.Loading(),
+            playableItemsState = DataState.Loading(),
         )
     )
     val state = _state.asStateFlow()
@@ -203,7 +203,7 @@ class ItemDetailsViewModel(
                 _state.update {
                     it.copy(
                         albumsState = DataState.NoData(),
-                        tracksState = DataState.NoData()
+                        playableItemsState = DataState.NoData()
                     )
                 }
             }
@@ -236,7 +236,7 @@ class ItemDetailsViewModel(
 
     private fun loadArtistTracks(itemId: String, providerDomain: String) {
         viewModelScope.launch {
-            _state.update { it.copy(tracksState = DataState.Loading()) }
+            _state.update { it.copy(playableItemsState = DataState.Loading()) }
 
             try {
                 val tracks = apiClient.sendRequest(
@@ -250,17 +250,17 @@ class ItemDetailsViewModel(
                     ?.filterIsInstance<AppMediaItem.Track>()
                     ?: emptyList()
 
-                _state.update { it.copy(tracksState = DataState.Data(tracks)) }
+                _state.update { it.copy(playableItemsState = DataState.Data(tracks)) }
             } catch (e: Exception) {
                 Logger.e("Failed to load artist tracks", e)
-                _state.update { it.copy(tracksState = DataState.Error()) }
+                _state.update { it.copy(playableItemsState = DataState.Error()) }
             }
         }
     }
 
     private fun loadAlbumTracks(itemId: String, provider: String) {
         viewModelScope.launch {
-            _state.update { it.copy(tracksState = DataState.Loading()) }
+            _state.update { it.copy(playableItemsState = DataState.Loading()) }
 
             try {
                 val tracks = apiClient.sendRequest(
@@ -274,17 +274,17 @@ class ItemDetailsViewModel(
                     ?.filterIsInstance<AppMediaItem.Track>()
                     ?: emptyList()
 
-                _state.update { it.copy(tracksState = DataState.Data(tracks)) }
+                _state.update { it.copy(playableItemsState = DataState.Data(tracks)) }
             } catch (e: Exception) {
                 Logger.e("Failed to load album tracks", e)
-                _state.update { it.copy(tracksState = DataState.Error()) }
+                _state.update { it.copy(playableItemsState = DataState.Error()) }
             }
         }
     }
 
     private fun loadPlaylistTracks(itemId: String, provider: String) {
         viewModelScope.launch {
-            _state.update { it.copy(tracksState = DataState.Loading()) }
+            _state.update { it.copy(playableItemsState = DataState.Loading()) }
 
             try {
                 val tracks = apiClient.sendRequest(
@@ -298,17 +298,17 @@ class ItemDetailsViewModel(
                     ?.filterIsInstance<AppMediaItem.Track>()
                     ?: emptyList()
 
-                _state.update { it.copy(tracksState = DataState.Data(tracks)) }
+                _state.update { it.copy(playableItemsState = DataState.Data(tracks)) }
             } catch (e: Exception) {
                 Logger.e("Failed to load playlist tracks", e)
-                _state.update { it.copy(tracksState = DataState.Error()) }
+                _state.update { it.copy(playableItemsState = DataState.Error()) }
             }
         }
     }
 
     private fun loadPodcastEpisodes(itemId: String, provider: String) {
         viewModelScope.launch {
-            _state.update { it.copy(tracksState = DataState.Loading()) }
+            _state.update { it.copy(playableItemsState = DataState.Loading()) }
 
             try {
                 val episodes = apiClient.sendRequest(
@@ -322,37 +322,34 @@ class ItemDetailsViewModel(
                     ?.filterIsInstance<AppMediaItem.PodcastEpisode>()
                     ?: emptyList()
 
-                _state.update { it.copy(tracksState = DataState.Data(episodes)) }
+                _state.update { it.copy(playableItemsState = DataState.Data(episodes)) }
             } catch (e: Exception) {
                 Logger.e("Failed to load podcast episodes", e)
-                _state.update { it.copy(tracksState = DataState.Error()) }
+                _state.update { it.copy(playableItemsState = DataState.Error()) }
             }
         }
     }
 
     fun onPlayClick(option: QueueOption, radio: Boolean) {
-        (_state.value.itemState as? DataState.Data)?.data?.uri?.let { uriClick(it, option, radio) }
+        (_state.value.itemState as? DataState.Data)?.data?.let {
+            onPlayClick(it, option, radio)
+        }
     }
 
-    fun onTrackClick(track: PlayableItem, option: QueueOption, radio: Boolean) {
-        track.uri?.let { uriClick(it, option, radio) }
-    }
-
-    private fun uriClick(
-        uri: String,
-        option: QueueOption,
-        radio: Boolean
-    ) {
+    fun onPlayClick(track: AppMediaItem, option: QueueOption, radio: Boolean) {
         viewModelScope.launch {
-            val queueId = mainDataSource.selectedPlayer?.queueOrPlayerId ?: return@launch
-            apiClient.sendRequest(
-                Request.Library.play(
-                    media = listOf(uri),
-                    queueOrPlayerId = queueId,
-                    option = option,
-                    radioMode = radio
-                )
-            )
+            track.uri?.let { uri ->
+                mainDataSource.selectedPlayer?.queueOrPlayerId?.let { queueId ->
+                    apiClient.sendRequest(
+                        Request.Library.play(
+                            media = listOf(uri),
+                            queueOrPlayerId = queueId,
+                            option = option,
+                            radioMode = radio
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -378,7 +375,7 @@ class ItemDetailsViewModel(
         }
 
         // Update tracks list if this item is a track
-        val tracksData = (_state.value.tracksState as? DataState.Data)?.data
+        val tracksData = (_state.value.playableItemsState as? DataState.Data)?.data
         if (tracksData != null) {
             val updatedTracks = tracksData.map { track ->
                 if (track.itemId == serverItem.itemId) {
@@ -387,7 +384,7 @@ class ItemDetailsViewModel(
                     track
                 }
             }
-            _state.update { it.copy(tracksState = DataState.Data(updatedTracks)) }
+            _state.update { it.copy(playableItemsState = DataState.Data(updatedTracks)) }
         }
     }
 }

@@ -8,7 +8,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -515,11 +514,8 @@ private fun GroupButton(player: PlayerData, isLocalPlayer: Boolean, onShowGroup:
 
         when {
             player.groupChildren.isEmpty() ->
-                OutlinedButton(
-                    modifier = Modifier.align(Alignment.Center),
-                    enabled = false,
-                    border = BorderStroke(0.dp, Color.Transparent),
-                    onClick = {}
+                Box(
+                    modifier = Modifier.height(48.dp).align(Alignment.Center)
                 ) {
                     playerName(MaterialTheme.colorScheme.onSurface)
                 }

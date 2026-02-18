@@ -37,16 +37,15 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.music_assistant.client.data.model.client.AppMediaItem
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.MediaType
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.ui.compose.common.DataState
 import io.music_assistant.client.ui.compose.common.ToastHost
 import io.music_assistant.client.ui.compose.common.ToastState
-import io.music_assistant.client.ui.compose.common.items.MediaItemAlbum
-import io.music_assistant.client.ui.compose.common.items.MediaItemArtist
-import io.music_assistant.client.ui.compose.common.items.MediaItemPlaylist
-import io.music_assistant.client.ui.compose.common.items.MediaItemPodcast
+import io.music_assistant.client.ui.compose.common.items.AlbumWithMenu
+import io.music_assistant.client.ui.compose.common.items.ArtistWithMenu
+import io.music_assistant.client.ui.compose.common.items.PlaylistWithMenu
+import io.music_assistant.client.ui.compose.common.items.PodcastWithMenu
 import io.music_assistant.client.ui.compose.common.items.RadioWithMenu
 import io.music_assistant.client.ui.compose.common.items.TrackWithMenu
 import io.music_assistant.client.ui.compose.common.providers.ProviderIcon
@@ -94,7 +93,7 @@ fun SearchScreen(
                     else -> Unit
                 }
             },
-            onTrackClick = viewModel::onTrackClick,
+            onPlayClick = viewModel::onPlayClick,
             playlistActions = ActionsViewModel.PlaylistActions(
                 onLoadPlaylists = actionsViewModel::getEditablePlaylists,
                 onAddToPlaylist = actionsViewModel::addToPlaylist
@@ -146,7 +145,7 @@ private fun SearchContent(
     onMediaTypeToggled: (MediaType, Boolean) -> Unit,
     onLibraryOnlyToggled: (Boolean) -> Unit,
     onItemClick: (AppMediaItem) -> Unit,
-    onTrackClick: (PlayableItem, QueueOption, Boolean) -> Unit,
+    onPlayClick: (AppMediaItem, QueueOption, Boolean) -> Unit,
     playlistActions: ActionsViewModel.PlaylistActions,
     libraryActions: ActionsViewModel.LibraryActions,
     providerIconFetcher: (@Composable (Modifier, String) -> Unit),
@@ -225,7 +224,7 @@ private fun SearchContent(
                                     TrackWithMenu(
                                         item = track,
                                         serverUrl = serverUrl,
-                                        onTrackPlayOption = onTrackClick,
+                                        onPlayOption = onPlayClick,
                                         playlistActions = playlistActions,
                                         libraryActions = libraryActions,
                                         providerIconFetcher = providerIconFetcher,
@@ -239,11 +238,14 @@ private fun SearchContent(
                                     SectionHeader("Artists")
                                 }
                                 items(results.artists) { artist ->
-                                    MediaItemArtist(
+                                    ArtistWithMenu(
                                         item = artist,
+                                        showSubtitle = true,
                                         serverUrl = serverUrl,
-                                        onClick = { onItemClick(it) },
-                                        providerIconFetcher = providerIconFetcher,
+                                        onNavigateClick = onItemClick,
+                                        onPlayOption = onPlayClick,
+                                        libraryActions = libraryActions,
+                                        providerIconFetcher = providerIconFetcher
                                     )
                                 }
                             }
@@ -254,11 +256,14 @@ private fun SearchContent(
                                     SectionHeader("Albums")
                                 }
                                 items(results.albums) { album ->
-                                    MediaItemAlbum(
+                                    AlbumWithMenu(
                                         item = album,
+                                        showSubtitle = true,
                                         serverUrl = serverUrl,
-                                        onClick = { onItemClick(it) },
-                                        providerIconFetcher = providerIconFetcher,
+                                        onNavigateClick = onItemClick,
+                                        onPlayOption = onPlayClick,
+                                        libraryActions = libraryActions,
+                                        providerIconFetcher = providerIconFetcher
                                     )
                                 }
                             }
@@ -269,11 +274,14 @@ private fun SearchContent(
                                     SectionHeader("Playlists")
                                 }
                                 items(results.playlists) { playlist ->
-                                    MediaItemPlaylist(
+                                    PlaylistWithMenu(
                                         item = playlist,
+                                        showSubtitle = true,
                                         serverUrl = serverUrl,
-                                        onClick = { onItemClick(it) },
-                                        providerIconFetcher = providerIconFetcher,
+                                        onNavigateClick = onItemClick,
+                                        onPlayOption = onPlayClick,
+                                        libraryActions = libraryActions,
+                                        providerIconFetcher = providerIconFetcher
                                     )
                                 }
                             }
@@ -284,11 +292,14 @@ private fun SearchContent(
                                     SectionHeader("Podcasts")
                                 }
                                 items(results.podcasts) { podcast ->
-                                    MediaItemPodcast(
+                                    PodcastWithMenu(
                                         item = podcast,
+                                        showSubtitle = true,
                                         serverUrl = serverUrl,
-                                        onClick = { onItemClick(it) },
-                                        providerIconFetcher = providerIconFetcher,
+                                        onNavigateClick = onItemClick,
+                                        onPlayOption = onPlayClick,
+                                        libraryActions = libraryActions,
+                                        providerIconFetcher = providerIconFetcher
                                     )
                                 }
                             }
@@ -302,14 +313,7 @@ private fun SearchContent(
                                     RadioWithMenu(
                                         item = radio,
                                         serverUrl = serverUrl,
-                                        onTrackPlayOption = onTrackClick,
-                                        onItemClick = {
-                                            (it as? AppMediaItem)?.let { i ->
-                                                onItemClick(
-                                                    i
-                                                )
-                                            }
-                                        },
+                                        onPlayOption = onPlayClick,
                                         playlistActions = playlistActions,
                                         libraryActions = libraryActions,
                                         providerIconFetcher = providerIconFetcher,

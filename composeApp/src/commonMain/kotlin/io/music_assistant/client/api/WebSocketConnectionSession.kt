@@ -30,6 +30,7 @@ class WebSocketConnectionSession(
                         val message = session.receiveDeserialized<JsonObject>()
                         emit(message)
                     }
+
                     else -> {
                         // Ignore non-text frames (ping/pong/close)
                     }

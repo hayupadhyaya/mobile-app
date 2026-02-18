@@ -281,7 +281,7 @@ class AudioStreamManager(
                 val chunk = audioBuffer.peek() ?: break
                 val chunkPlaybackTime = chunk.localTimestamp
                 val lateThreshold = adaptiveBufferManager.currentLateThreshold
-                
+
                 if (chunkPlaybackTime < syncStartTime - lateThreshold) {
                     // This chunk is late - skip it
                     audioBuffer.poll()
@@ -473,7 +473,8 @@ class AudioStreamManager(
         // Throttle updates to reduce GC pressure (max every 100ms)
         // Exception: Always update on underrun state changes
         if (now - lastBufferStateUpdate < bufferStateUpdateInterval &&
-            _bufferState.value.isUnderrun == isUnderrun) {
+            _bufferState.value.isUnderrun == isUnderrun
+        ) {
             return // Skip update
         }
 

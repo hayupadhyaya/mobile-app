@@ -17,7 +17,8 @@ import kotlinx.serialization.json.jsonPrimitive
  *
  * Forward compatible: Unknown message types are deserialized as Unknown instead of crashing.
  */
-object SignalingMessageSerializer : JsonContentPolymorphicSerializer<SignalingMessage>(SignalingMessage::class) {
+object SignalingMessageSerializer :
+    JsonContentPolymorphicSerializer<SignalingMessage>(SignalingMessage::class) {
     private val logger = Logger.withTag("SignalingMessageSerializer")
 
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<SignalingMessage> {

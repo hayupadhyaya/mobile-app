@@ -24,7 +24,12 @@ val sharedModule = module {
     single { provideSettings() }
     singleOf(::SettingsRepository)
     singleOf(::ServiceClient)
-    single(createdAtStart = true) { AuthenticationManager(get(), get()) }  // Eager - needs to start monitoring immediately
+    single(createdAtStart = true) {
+        AuthenticationManager(
+            get(),
+            get()
+        )
+    }  // Eager - needs to start monitoring immediately
     singleOf(::MediaPlayerController)  // Used by MainDataSource for Sendspin
     singleOf(::SendspinClientFactory)   // Factory for creating Sendspin clients
     singleOf(::MainDataSource)          // Singleton - held by foreground service

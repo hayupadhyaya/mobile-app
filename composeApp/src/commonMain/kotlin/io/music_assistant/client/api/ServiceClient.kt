@@ -63,8 +63,10 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
     private var webrtcManager: WebRTCConnectionManager? = null
     private var webrtcListeningJob: Job? = null
     private var webrtcStateMonitorJob: Job? = null
-    private var webrtcInitialMonitorJob: Job? = null  // Temp monitor during connection, cancelled when message listener starts
-    private var webrtcReconnectJob: Job? = null  // Active reconnection job, cancelled when connection succeeds or user disconnects
+    private var webrtcInitialMonitorJob: Job? =
+        null  // Temp monitor during connection, cancelled when message listener starts
+    private var webrtcReconnectJob: Job? =
+        null  // Active reconnection job, cancelled when connection succeeds or user disconnects
 
     // Cache last successful WebRTC connection for reconnection
     // Needed because state may transition to Error before monitor can extract info (race with MainDataSource)
@@ -75,6 +77,7 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
         val authProcessState: AuthProcessState,
         val wasAutoLogin: Boolean
     )
+
     private var lastWebRTCConnection: WebRTCConnectionCache? = null
 
     private var _sessionState: MutableStateFlow<SessionState> =
@@ -99,12 +102,20 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
             _sessionState.collect { state ->
                 when (state) {
                     is SessionState.Connected -> {
-                        state.connectionInfo?.let { connInfo -> settings.updateConnectionInfo(connInfo) }
+                        state.connectionInfo?.let { connInfo ->
+                            settings.updateConnectionInfo(
+                                connInfo
+                            )
+                        }
                     }
 
                     is SessionState.Reconnecting -> {
                         // Keep connection info during reconnection (no UI reload)
-                        state.connectionInfo?.let { connInfo -> settings.updateConnectionInfo(connInfo) }
+                        state.connectionInfo?.let { connInfo ->
+                            settings.updateConnectionInfo(
+                                connInfo
+                            )
+                        }
                     }
 
                     is SessionState.Disconnected -> {
@@ -385,16 +396,19 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
     private suspend fun getOrCreateWebRTCManager(): WebRTCConnectionManager {
         // Clean up old manager completely before creating new one
         webrtcManager?.let { oldManager ->
-            Logger.withTag("ServiceClient").d { "🧹 Cleaning up old WebRTC manager [${oldManager.hashCode()}]" }
+            Logger.withTag("ServiceClient")
+                .d { "🧹 Cleaning up old WebRTC manager [${oldManager.hashCode()}]" }
             webrtcListeningJob?.cancel()
             webrtcListeningJob = null
             webrtcStateMonitorJob?.cancel()
             webrtcStateMonitorJob = null
             webrtcInitialMonitorJob?.cancel()
             webrtcInitialMonitorJob = null
-            Logger.withTag("ServiceClient").d { "🧹 Disconnecting old manager [${oldManager.hashCode()}]" }
+            Logger.withTag("ServiceClient")
+                .d { "🧹 Disconnecting old manager [${oldManager.hashCode()}]" }
             oldManager.disconnect()
-            Logger.withTag("ServiceClient").d { "🧹 Old manager [${oldManager.hashCode()}] cleaned up" }
+            Logger.withTag("ServiceClient")
+                .d { "🧹 Old manager [${oldManager.hashCode()}] cleaned up" }
         }
 
         val signalingClient = SignalingClient(webrtcHttpClient, this)
@@ -413,13 +427,15 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
         webrtcListeningJob = launch {
             try {
                 manager.incomingMessages.collect { jsonString ->
-                    Logger.withTag("ServiceClient").d { "WebRTC received: ${jsonString.take(200)}..." }
+                    Logger.withTag("ServiceClient")
+                        .d { "WebRTC received: ${jsonString.take(200)}..." }
                     try {
                         val message = myJson.decodeFromString<JsonObject>(jsonString)
                         Logger.withTag("ServiceClient").d { "WebRTC parsed, keys: ${message.keys}" }
                         handleIncomingMessage(message)
                     } catch (e: Exception) {
-                        Logger.withTag("ServiceClient").e(e) { "Failed to parse WebRTC message: $jsonString" }
+                        Logger.withTag("ServiceClient")
+                            .e(e) { "Failed to parse WebRTC message: $jsonString" }
                     }
                 }
             } catch (e: Exception) {
@@ -465,6 +481,7 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                                     wasAutoLogin = state.wasAutoLogin
                                 )
                             }
+
                             else -> {
                                 // State already changed (race condition) - use cached info
                                 lastWebRTCConnection
@@ -479,7 +496,8 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                                 return@collect
                             }
 
-                            val source = if (currentState is SessionState.Connected.WebRTC) "current state" else "cache"
+                            val source =
+                                if (currentState is SessionState.Connected.WebRTC) "current state" else "cache"
                             Logger.withTag("ServiceClient")
                                 .w { "🔄 RECONNECT: Starting (from $source)" }
                             Logger.withTag("ServiceClient")
@@ -517,6 +535,7 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                                 .w { "🛑 SKIP: No connection info in state or cache" }
                         }
                     }
+
                     else -> {
                         // Other states handled in connectWebRTC()
                     }
@@ -627,6 +646,7 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                         settings.getDirectServerIdentifier(connInfo.host, connInfo.port)
                     }
                 }
+
                 is SessionState.Connected.WebRTC -> {
                     settings.getWebRTCServerIdentifier(currentState.remoteId.rawId)
                 }
@@ -703,6 +723,7 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                                 settings.getDirectServerIdentifier(connInfo.host, connInfo.port)
                             }
                         }
+
                         is SessionState.Connected.WebRTC -> {
                             settings.getWebRTCServerIdentifier(currentState.remoteId.rawId)
                         }
@@ -829,11 +850,13 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                 while (System.currentTimeMillis() - startTime < timeoutMs) {
                     when (val state = _sessionState.value) {
                         is SessionState.Connected.WebRTC -> {
-                            Logger.withTag("ServiceClient").i { "✅ WebRTC reconnection successful! Exiting reconnection loop." }
+                            Logger.withTag("ServiceClient")
+                                .i { "✅ WebRTC reconnection successful! Exiting reconnection loop." }
 
                             // Re-authenticate with saved token
                             launch {
-                                val serverIdentifier = settings.getWebRTCServerIdentifier(remoteId.rawId)
+                                val serverIdentifier =
+                                    settings.getWebRTCServerIdentifier(remoteId.rawId)
                                 val token = settings.getTokenForServer(serverIdentifier)
                                     ?: settings.token.value // Fallback to legacy
 
@@ -846,14 +869,17 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                                         .w { "⚠️ No saved token to re-authenticate with for WebRTC server: $serverIdentifier" }
                                 }
                             }
-                            Logger.withTag("ServiceClient").i { "🏁 autoReconnectWebRTC() returning" }
+                            Logger.withTag("ServiceClient")
+                                .i { "🏁 autoReconnectWebRTC() returning" }
                             return
                         }
+
                         is SessionState.Disconnected.ByUser -> {
                             Logger.withTag("ServiceClient")
                                 .i { "User disconnected during reconnect attempt" }
                             return
                         }
+
                         else -> {
                             // Still connecting or reconnecting, wait a bit
                             delay(100L)
@@ -891,13 +917,15 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                         settings.getDirectServerIdentifier(connInfo.host, connInfo.port)
                     }
                 }
+
                 is SessionState.Connected.WebRTC -> {
                     settings.getWebRTCServerIdentifier(currentState.remoteId.rawId)
                 }
             }
             serverIdentifier?.let { id ->
                 settings.setTokenForServer(id, null)
-                Logger.withTag("ServiceClient").d { "Cleared token for server: $id due to auth failure" }
+                Logger.withTag("ServiceClient")
+                    .d { "Cleared token for server: $id due to auth failure" }
             }
         }
         // Also clear legacy global token for backward compatibility

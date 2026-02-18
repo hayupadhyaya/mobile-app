@@ -9,7 +9,6 @@ import io.music_assistant.client.data.MainDataSource
 import io.music_assistant.client.data.model.client.AppMediaItem
 import io.music_assistant.client.data.model.client.AppMediaItem.Companion.toAppMediaItem
 import io.music_assistant.client.data.model.client.AppMediaItem.Companion.toAppMediaItemList
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.data.model.server.ServerMediaItem
 import io.music_assistant.client.data.model.server.events.MediaItemAddedEvent
@@ -195,11 +194,11 @@ class LibraryViewModel(
         }
     }
 
-    fun onTrackClick(track: PlayableItem, option: QueueOption, radio: Boolean) {
+    fun onPlayClick(item: AppMediaItem, option: QueueOption, radio: Boolean) {
         viewModelScope.launch {
             val queueId = mainDataSource.selectedPlayer?.queueOrPlayerId ?: return@launch
 
-            track.uri?.let { uri ->
+            item.uri?.let { uri ->
                 apiClient.sendRequest(
                     Request.Library.play(
                         media = listOf(uri),

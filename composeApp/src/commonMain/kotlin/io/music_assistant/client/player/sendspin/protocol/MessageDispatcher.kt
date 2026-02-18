@@ -3,7 +3,6 @@ package io.music_assistant.client.player.sendspin.protocol
 import co.touchlab.kermit.Logger
 import io.music_assistant.client.player.sendspin.ClockSynchronizer
 import io.music_assistant.client.player.sendspin.ProtocolState
-import io.music_assistant.client.player.sendspin.transport.SendspinTransport
 import io.music_assistant.client.player.sendspin.model.ClientAuthMessage
 import io.music_assistant.client.player.sendspin.model.ClientCommandMessage
 import io.music_assistant.client.player.sendspin.model.ClientGoodbyeMessage
@@ -30,6 +29,7 @@ import io.music_assistant.client.player.sendspin.model.StreamEndMessage
 import io.music_assistant.client.player.sendspin.model.StreamMetadataMessage
 import io.music_assistant.client.player.sendspin.model.StreamMetadataPayload
 import io.music_assistant.client.player.sendspin.model.StreamStartMessage
+import io.music_assistant.client.player.sendspin.transport.SendspinTransport
 import io.music_assistant.client.utils.myJson
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

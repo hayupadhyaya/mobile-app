@@ -55,7 +55,6 @@ import compose.icons.tablericons.FolderPlus
 import compose.icons.tablericons.Heart
 import compose.icons.tablericons.HeartBroken
 import io.music_assistant.client.data.model.client.AppMediaItem
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.MediaType
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.ui.compose.common.DataState
@@ -63,8 +62,8 @@ import io.music_assistant.client.ui.compose.common.OverflowMenu
 import io.music_assistant.client.ui.compose.common.OverflowMenuOption
 import io.music_assistant.client.ui.compose.common.ToastHost
 import io.music_assistant.client.ui.compose.common.ToastState
-import io.music_assistant.client.ui.compose.common.items.MediaItemAlbum
-import io.music_assistant.client.ui.compose.common.items.MediaItemAlbumRow
+import io.music_assistant.client.ui.compose.common.items.AlbumWithMenu
+import io.music_assistant.client.ui.compose.common.items.PodcastEpisodeWithMenu
 import io.music_assistant.client.ui.compose.common.items.TrackWithMenu
 import io.music_assistant.client.ui.compose.common.providers.ProviderIcon
 import io.music_assistant.client.ui.compose.common.rememberToastState
@@ -124,7 +123,7 @@ fun ItemDetailsScreen(
             serverUrl = serverUrl,
             toastState = toastState,
             isRowMode = isRowMode,
-            onSubItemClick = { item ->
+            onNavigateClick = { item ->
                 when (item) {
                     is AppMediaItem.Artist,
                     is AppMediaItem.Album,
@@ -136,7 +135,7 @@ fun ItemDetailsScreen(
                     else -> Unit
                 }
             },
-            onTrackClick = viewModel::onTrackClick,
+            onPlayClick = viewModel::onPlayClick,
             playlistActions = playlistActions,
             onRemoveFromPlaylist = { id, pos ->
                 actionsViewModel.removeFromPlaylist(
@@ -354,8 +353,8 @@ private fun ItemDetailsContent(
     serverUrl: String?,
     toastState: ToastState,
     isRowMode: Boolean,
-    onSubItemClick: (AppMediaItem) -> Unit,
-    onTrackClick: (PlayableItem, QueueOption, Boolean) -> Unit,
+    onNavigateClick: (AppMediaItem) -> Unit,
+    onPlayClick: (AppMediaItem, QueueOption, Boolean) -> Unit,
     playlistActions: ActionsViewModel.PlaylistActions,
     onRemoveFromPlaylist: (String, Int) -> Unit,
     libraryActions: ActionsViewModel.LibraryActions,
@@ -414,22 +413,16 @@ private fun ItemDetailsContent(
                                             { GridItemSpan(maxLineSpan) }
                                         } else null
                                     ) { album ->
-                                        if (isRowMode) {
-                                            MediaItemAlbumRow(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                item = album,
-                                                serverUrl = serverUrl,
-                                                onClick = { onSubItemClick(album) },
-                                                providerIconFetcher = providerIconFetcher,
-                                            )
-                                        } else {
-                                            MediaItemAlbum(
-                                                item = album,
-                                                serverUrl = serverUrl,
-                                                onClick = { onSubItemClick(album) },
-                                                providerIconFetcher = providerIconFetcher,
-                                            )
-                                        }
+                                        AlbumWithMenu(
+                                            item = album,
+                                            rowMode = isRowMode,
+                                            showSubtitle = true,
+                                            serverUrl = serverUrl,
+                                            onNavigateClick = onNavigateClick,
+                                            onPlayOption = onPlayClick,
+                                            libraryActions = libraryActions,
+                                            providerIconFetcher = providerIconFetcher
+                                        )
                                     }
                                 }
                             }
@@ -450,7 +443,7 @@ private fun ItemDetailsContent(
                     }
 
                     // Tracks section (all types)
-                    when (val tracksState = state.tracksState) {
+                    when (val tracksState = state.playableItemsState) {
                         is DataState.Data -> {
                             if (tracksState.data.isNotEmpty()) {
                                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -467,22 +460,31 @@ private fun ItemDetailsContent(
                                             { GridItemSpan(maxLineSpan) }
                                         } else null
                                     ) {
-                                        TrackWithMenu(
-                                            modifier = if (isRowMode) Modifier.fillMaxWidth() else Modifier,
-                                            item = track,
-                                            serverUrl = serverUrl,
-                                            rowMode = isRowMode,
-                                            onTrackPlayOption = onTrackClick,
-                                            // Don't show "add to playlist" for playlist items
-                                            playlistActions = playlistActions
-                                                .takeIf { item !is AppMediaItem.Playlist },
-                                            // Show "remove from playlist" only for playlist items
-                                            onRemoveFromPlaylist = if (item is AppMediaItem.Playlist && item.isEditable == true) {
-                                                { onRemoveFromPlaylist(item.itemId, index) }
-                                            } else null,
-                                            libraryActions = libraryActions,
-                                            providerIconFetcher = providerIconFetcher,
-                                        )
+                                        when (track) {
+                                            is AppMediaItem.Track -> TrackWithMenu(
+                                                item = track,
+                                                serverUrl = serverUrl,
+                                                rowMode = isRowMode,
+                                                onPlayOption = onPlayClick,
+                                                playlistActions = playlistActions,
+                                                // Show "remove from playlist" only for playlist items
+                                                onRemoveFromPlaylist = if (item is AppMediaItem.Playlist && item.isEditable == true) {
+                                                    { onRemoveFromPlaylist(item.itemId, index) }
+                                                } else null,
+                                                libraryActions = libraryActions,
+                                                providerIconFetcher = providerIconFetcher,
+                                            )
+
+                                            is AppMediaItem.PodcastEpisode -> PodcastEpisodeWithMenu(
+                                                item = track,
+                                                serverUrl = serverUrl,
+                                                rowMode = isRowMode,
+                                                onPlayOption = onPlayClick,
+                                                playlistActions = null, // No playlist actions for podcast episodes
+                                                libraryActions = libraryActions,
+                                                providerIconFetcher = providerIconFetcher,
+                                            )
+                                        }
                                     }
                                 }
                             }

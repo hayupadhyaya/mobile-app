@@ -46,7 +46,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.music_assistant.client.data.model.client.AppMediaItem
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.ui.compose.common.DataState
 import io.music_assistant.client.ui.compose.common.providers.ProviderIcon
@@ -146,8 +145,7 @@ fun HomeScreen(
                             connectionState = connectionState,
                             dataState = dataState,
                             serverUrl = serverUrl,
-                            onRecommendationItemClick = viewModel::onRecommendationItemClicked,
-                            onTrackPlayOption = viewModel::onTrackPlayOption,
+                            onPlayClick = viewModel::onPlayClick,
                             playlistActions = ActionsViewModel.PlaylistActions(
                                 onLoadPlaylists = actionsViewModel::getEditablePlaylists,
                                 onAddToPlaylist = actionsViewModel::addToPlaylist
@@ -325,8 +323,7 @@ private fun HomeContent(
     connectionState: SessionState,
     dataState: DataState<List<AppMediaItem.RecommendationFolder>>,
     serverUrl: String?,
-    onRecommendationItemClick: (PlayableItem) -> Unit,
-    onTrackPlayOption: (PlayableItem, QueueOption, Boolean) -> Unit,
+    onPlayClick: (AppMediaItem, QueueOption, Boolean) -> Unit,
     playlistActions: ActionsViewModel.PlaylistActions,
     libraryActions: ActionsViewModel.LibraryActions,
     navigateTo: (NavScreen) -> Unit,
@@ -348,18 +345,17 @@ private fun HomeContent(
         modifier = modifier,
         backStack = typedBackStack,
         onBack = { typedBackStack.removeLastOrNull() },
-//        sceneStrategy = homeBottomSheetStrategy.then(homeDialogStrategy),
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(saveableStateHolderForHome)
         ),
         entryProvider = entryProvider {
             entry<HomeNavScreen.Landing> {
                 LandingPage(
-                    Modifier.fillMaxSize(),
-                    connectionState,
-                    dataState,
-                    serverUrl,
-                    onItemClick = { item ->
+                    modifier = Modifier.fillMaxSize(),
+                    connectionState = connectionState,
+                    dataState = dataState,
+                    serverUrl = serverUrl,
+                    onNavigateClick = { item ->
                         when (item) {
                             is AppMediaItem.Artist,
                             is AppMediaItem.Album,
@@ -374,14 +370,10 @@ private fun HomeContent(
                                 )
                             }
 
-                            is PlayableItem -> {
-                                // For tracks and other types, play immediately
-                                onRecommendationItemClick(item)
-                            }
                             else -> Unit
                         }
                     },
-                    onTrackPlayOption = onTrackPlayOption,
+                    onPlayClick = onPlayClick,
                     onLibraryItemClick = { type ->
                         if (type == null) {
                             typedBackStack.add(HomeNavScreen.Search)
@@ -400,7 +392,7 @@ private fun HomeContent(
                 LibraryScreen(
                     initialTabType = it.type,
                     onBack = { typedBackStack.removeLastOrNull() },
-                    onItemClick = { item ->
+                    onNavigateClick = { item ->
                         when (item) {
                             is AppMediaItem.Artist,
                             is AppMediaItem.Album,
@@ -415,9 +407,7 @@ private fun HomeContent(
                                 )
                             }
 
-                            else -> {
-                                // TODO: Handle track clicks or other item types
-                            }
+                            else -> Unit
                         }
                     }
                 )

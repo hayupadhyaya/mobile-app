@@ -11,7 +11,7 @@ import io.music_assistant.client.data.model.server.ServerQueueItem
 data class QueueTrack(
     val id: String,
     val track: PlayableItem,
-    val isPlayable: Boolean ,
+    val isPlayable: Boolean,
     val format: AudioFormat?,
     val dsp: Map<String, DSPSettings>?
 ) {

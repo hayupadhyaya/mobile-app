@@ -37,7 +37,8 @@ sealed class WebRTCError {
     data class SignalingError(val message: String, val cause: Throwable? = null) : WebRTCError()
 
     /** Error during WebRTC peer connection establishment */
-    data class PeerConnectionError(val message: String, val cause: Throwable? = null) : WebRTCError()
+    data class PeerConnectionError(val message: String, val cause: Throwable? = null) :
+        WebRTCError()
 
     /** Generic connection error */
     data class ConnectionError(val message: String, val cause: Throwable? = null) : WebRTCError()

@@ -51,15 +51,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.music_assistant.client.data.model.client.AppMediaItem
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.MediaType
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.ui.compose.common.DataState
-import io.music_assistant.client.ui.compose.common.items.EpisodeWithMenu
-import io.music_assistant.client.ui.compose.common.items.MediaItemAlbum
-import io.music_assistant.client.ui.compose.common.items.MediaItemArtist
-import io.music_assistant.client.ui.compose.common.items.MediaItemPlaylist
-import io.music_assistant.client.ui.compose.common.items.MediaItemPodcast
+import io.music_assistant.client.ui.compose.common.items.AlbumWithMenu
+import io.music_assistant.client.ui.compose.common.items.ArtistWithMenu
+import io.music_assistant.client.ui.compose.common.items.PlaylistWithMenu
+import io.music_assistant.client.ui.compose.common.items.PodcastEpisodeWithMenu
+import io.music_assistant.client.ui.compose.common.items.PodcastWithMenu
 import io.music_assistant.client.ui.compose.common.items.RadioWithMenu
 import io.music_assistant.client.ui.compose.common.items.TrackWithMenu
 import io.music_assistant.client.ui.compose.common.painters.rememberPlaceholderPainter
@@ -76,8 +75,8 @@ fun LandingPage(
     connectionState: SessionState,
     dataState: DataState<List<AppMediaItem.RecommendationFolder>>,
     serverUrl: String?,
-    onItemClick: (AppMediaItem) -> Unit,
-    onTrackPlayOption: ((PlayableItem, QueueOption, Boolean) -> Unit),
+    onNavigateClick: (AppMediaItem) -> Unit,
+    onPlayClick: ((AppMediaItem, QueueOption, Boolean) -> Unit),
     onLibraryItemClick: (MediaType?) -> Unit,
     playlistActions: ActionsViewModel.PlaylistActions,
     libraryActions: ActionsViewModel.LibraryActions,
@@ -133,8 +132,8 @@ fun LandingPage(
                     CategoryRow(
                         serverUrl = serverUrl,
                         row = row,
-                        onItemClick = onItemClick,
-                        onTrackPlayOption = onTrackPlayOption,
+                        onNavigateClick = onNavigateClick,
+                        onPlayClick = onPlayClick,
                         onAllClick = { row.rowItemType?.let { onLibraryItemClick(it) } },
                         mediaItems = row.items.orEmpty(),
                         playlistActions = playlistActions,
@@ -306,8 +305,8 @@ private data class LibraryItem(
 fun CategoryRow(
     serverUrl: String?,
     row: AppMediaItem.RecommendationFolder,
-    onItemClick: (AppMediaItem) -> Unit,
-    onTrackPlayOption: ((PlayableItem, QueueOption, Boolean) -> Unit),
+    onNavigateClick: (AppMediaItem) -> Unit,
+    onPlayClick: ((AppMediaItem, QueueOption, Boolean) -> Unit),
     onAllClick: () -> Unit,
     mediaItems: List<AppMediaItem>,
     playlistActions: ActionsViewModel.PlaylistActions,
@@ -377,59 +376,59 @@ fun CategoryRow(
                 }
             ) { item ->
                 when (item) {
+                    is AppMediaItem.Artist -> ArtistWithMenu(
+                        item = item,
+                        showSubtitle = !isHomogenous,
+                        serverUrl = serverUrl,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = providerIconFetcher
+                    )
+
+                    is AppMediaItem.Album -> AlbumWithMenu(
+                        item = item,
+                        showSubtitle = !isHomogenous,
+                        serverUrl = serverUrl,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = providerIconFetcher
+                    )
+
+                    is AppMediaItem.Playlist -> PlaylistWithMenu(
+                        item = item,
+                        showSubtitle = !isHomogenous,
+                        serverUrl = serverUrl,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = providerIconFetcher
+                    )
+
+                    is AppMediaItem.Podcast -> PodcastWithMenu(
+                        item = item,
+                        showSubtitle = !isHomogenous,
+                        serverUrl = serverUrl,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = providerIconFetcher
+                    )
+
                     is AppMediaItem.Track -> TrackWithMenu(
                         item = item,
                         serverUrl = serverUrl,
-                        itemSize = 96.dp,
-                        onTrackPlayOption = onTrackPlayOption,
-                        onItemClick = { (it as? AppMediaItem)?.let { i -> onItemClick(i) } },
+                        onPlayOption = onPlayClick,
                         playlistActions = playlistActions,
                         libraryActions = libraryActions,
                         providerIconFetcher = providerIconFetcher
                     )
 
-
-                    is AppMediaItem.Artist -> MediaItemArtist(
+                    is AppMediaItem.PodcastEpisode -> PodcastEpisodeWithMenu(
                         item = item,
                         serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        itemSize = 96.dp,
-                        showSubtitle = !isHomogenous,
-                        providerIconFetcher = providerIconFetcher
-                    )
-
-                    is AppMediaItem.Album -> MediaItemAlbum(
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        itemSize = 96.dp,
-                        providerIconFetcher = providerIconFetcher
-                    )
-
-                    is AppMediaItem.Playlist -> MediaItemPlaylist(
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        itemSize = 96.dp,
-                        showSubtitle = !isHomogenous,
-                        providerIconFetcher = providerIconFetcher
-                    )
-
-                    is AppMediaItem.Podcast -> MediaItemPodcast(
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        itemSize = 96.dp,
-                        showSubtitle = !isHomogenous,
-                        providerIconFetcher = providerIconFetcher
-                    )
-
-                    is AppMediaItem.PodcastEpisode -> EpisodeWithMenu(
-                        item = item,
-                        serverUrl = serverUrl,
-                        itemSize = 96.dp,
-                        onTrackPlayOption = onTrackPlayOption,
-                        onItemClick = { (it as? AppMediaItem)?.let { i -> onItemClick(i) } },
+                        onPlayOption = onPlayClick,
                         playlistActions = playlistActions,
                         libraryActions = libraryActions,
                         providerIconFetcher = providerIconFetcher
@@ -438,9 +437,7 @@ fun CategoryRow(
                     is AppMediaItem.RadioStation -> RadioWithMenu(
                         item = item,
                         serverUrl = serverUrl,
-                        itemSize = 96.dp,
-                        onTrackPlayOption = onTrackPlayOption,
-                        onItemClick = { (it as? AppMediaItem)?.let { i -> onItemClick(i) } },
+                        onPlayOption = onPlayClick,
                         playlistActions = playlistActions,
                         libraryActions = libraryActions,
                         providerIconFetcher = providerIconFetcher

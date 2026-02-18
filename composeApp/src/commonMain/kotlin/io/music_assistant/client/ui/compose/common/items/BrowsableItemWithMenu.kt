@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.AddToQueue
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAddCircle
 import androidx.compose.material.icons.filled.QueuePlayNext
@@ -35,153 +34,186 @@ import compose.icons.tablericons.FolderPlus
 import compose.icons.tablericons.Heart
 import compose.icons.tablericons.HeartBroken
 import io.music_assistant.client.data.model.client.AppMediaItem
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.ui.compose.common.viewmodel.ActionsViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun TrackWithMenu(
-    item: AppMediaItem.Track,
+fun AlbumWithMenu(
+    item: AppMediaItem.Album,
+    showSubtitle: Boolean,
     rowMode: Boolean = false,
-    onPlayOption: ((AppMediaItem.Track, QueueOption, Boolean) -> Unit),
+    onNavigateClick: (AppMediaItem.Album) -> Unit,
+    onPlayOption: ((AppMediaItem.Album, QueueOption, Boolean) -> Unit),
     playlistActions: ActionsViewModel.PlaylistActions? = null,
-    onRemoveFromPlaylist: (() -> Unit)? = null,
     libraryActions: ActionsViewModel.LibraryActions,
     providerIconFetcher: (@Composable (Modifier, String) -> Unit)?,
-    serverUrl: String?,
+    serverUrl: String?
 ) {
-    PlayableItemWithMenu(
+    BrowsableItemWithMenu(
         modifier = if (rowMode) Modifier.fillMaxWidth() else Modifier,
         item = item,
+        onNavigateClick = onNavigateClick,
         onPlayOption = onPlayOption,
         playlistActions = playlistActions,
-        onRemoveFromPlaylist = onRemoveFromPlaylist,
         libraryActions = libraryActions,
-        itemComposable = { mod, onClick, onLongClick ->
-            if (rowMode) {
-                TrackRowItem(
-                    modifier = mod,
-                    item = item,
-                    serverUrl = serverUrl,
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    providerIconFetcher = providerIconFetcher
-                )
-            } else {
-                TrackGridItem(
-                    modifier = mod,
-                    item = item,
-                    serverUrl = serverUrl,
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    showSubtitle = true,
-                    providerIconFetcher = providerIconFetcher
-                )
-            }
+    ) { mod, onClick, onLongClick ->
+        if (rowMode) {
+            AlbumRowItem(
+                modifier = mod,
+                item = item,
+                serverUrl = serverUrl,
+                onClick = onClick,
+                onLongClick = onLongClick,
+                providerIconFetcher = providerIconFetcher
+            )
+        } else {
+            AlbumGridItem(
+                item = item,
+                showSubtitle = showSubtitle,
+                serverUrl = serverUrl,
+                onClick = onClick,
+                onLongClick = onLongClick,
+                providerIconFetcher = providerIconFetcher
+            )
         }
-    )
+    }
 }
 
 @Composable
-fun PodcastEpisodeWithMenu(
-    item: AppMediaItem.PodcastEpisode,
+fun ArtistWithMenu(
+    item: AppMediaItem.Artist,
+    showSubtitle: Boolean,
     rowMode: Boolean = false,
-    onPlayOption: ((AppMediaItem.PodcastEpisode, QueueOption, Boolean) -> Unit),
+    onNavigateClick: (AppMediaItem.Artist) -> Unit,
+    onPlayOption: ((AppMediaItem.Artist, QueueOption, Boolean) -> Unit),
     playlistActions: ActionsViewModel.PlaylistActions? = null,
-    onRemoveFromPlaylist: (() -> Unit)? = null,
     libraryActions: ActionsViewModel.LibraryActions,
     providerIconFetcher: (@Composable (Modifier, String) -> Unit)?,
-    serverUrl: String?,
+    serverUrl: String?
 ) {
-    PlayableItemWithMenu(
+    BrowsableItemWithMenu(
         modifier = if (rowMode) Modifier.fillMaxWidth() else Modifier,
         item = item,
+        onNavigateClick = onNavigateClick,
         onPlayOption = onPlayOption,
         playlistActions = playlistActions,
-        onRemoveFromPlaylist = onRemoveFromPlaylist,
         libraryActions = libraryActions,
-        itemComposable = { mod, onClick, onLongClick ->
-            if (rowMode) {
-                PodcastEpisodeRowItem(
-                    modifier = mod,
-                    item = item,
-                    serverUrl = serverUrl,
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    providerIconFetcher = providerIconFetcher
-                )
-            } else {
-                PodcastEpisodeGridItem(
-                    modifier = mod,
-                    item = item,
-                    serverUrl = serverUrl,
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    showSubtitle = true,
-                    providerIconFetcher = providerIconFetcher
-                )
-            }
+    ) { mod, onClick, onLongClick ->
+        if (rowMode) {
+            ArtistRowItem(
+                modifier = mod,
+                item = item,
+                serverUrl = serverUrl,
+                onClick = onClick,
+                onLongClick = onLongClick,
+                providerIconFetcher = providerIconFetcher
+            )
+        } else {
+            ArtistGridItem(
+                item = item,
+                showSubtitle = showSubtitle,
+                serverUrl = serverUrl,
+                onClick = onClick,
+                onLongClick = onLongClick,
+                providerIconFetcher = providerIconFetcher
+            )
         }
-    )
+    }
 }
 
 @Composable
-fun RadioWithMenu(
-    item: AppMediaItem.RadioStation,
+fun PlaylistWithMenu(
+    item: AppMediaItem.Playlist,
+    showSubtitle: Boolean,
     rowMode: Boolean = false,
-    onPlayOption: ((AppMediaItem.RadioStation, QueueOption, Boolean) -> Unit),
+    onNavigateClick: (AppMediaItem.Playlist) -> Unit,
+    onPlayOption: ((AppMediaItem.Playlist, QueueOption, Boolean) -> Unit),
     playlistActions: ActionsViewModel.PlaylistActions? = null,
-    onRemoveFromPlaylist: (() -> Unit)? = null,
     libraryActions: ActionsViewModel.LibraryActions,
     providerIconFetcher: (@Composable (Modifier, String) -> Unit)?,
-    serverUrl: String?,
+    serverUrl: String?
 ) {
-    PlayableItemWithMenu(
+    BrowsableItemWithMenu(
         modifier = if (rowMode) Modifier.fillMaxWidth() else Modifier,
         item = item,
+        onNavigateClick = onNavigateClick,
         onPlayOption = onPlayOption,
         playlistActions = playlistActions,
-        onRemoveFromPlaylist = onRemoveFromPlaylist,
         libraryActions = libraryActions,
-        itemComposable = { mod, onClick, onLongClick ->
-            if (rowMode) {
-                RadioRowItem(
-                    modifier = mod,
-                    item = item,
-                    serverUrl = serverUrl,
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    providerIconFetcher = providerIconFetcher
-                )
-            } else {
-                RadioGridItem(
-                    modifier = mod,
-                    item = item,
-                    serverUrl = serverUrl,
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    showSubtitle = true,
-                    providerIconFetcher = providerIconFetcher
-                )
-            }
+    ) { mod, onClick, onLongClick ->
+        if (rowMode) {
+            PlaylistRowItem(
+                modifier = mod,
+                item = item,
+                serverUrl = serverUrl,
+                onClick = onClick,
+                onLongClick = onLongClick,
+                providerIconFetcher = providerIconFetcher
+            )
+        } else {
+            PlaylistGridItem(
+                item = item,
+                showSubtitle = showSubtitle,
+                serverUrl = serverUrl,
+                onClick = onClick,
+                onLongClick = onLongClick,
+                providerIconFetcher = providerIconFetcher
+            )
         }
-    )
+    }
 }
 
-/**
- * A reusable composable that displays a playable item with a dropdown menu for queue actions.
- * The menu includes options to play now, insert next, add to queue, start radio, and manage library/favorites.
- * It also handles adding to playlists if playlist actions are provided.
- * Default click plays it now.
- */
 @Composable
-private fun <T : PlayableItem> PlayableItemWithMenu(
+fun PodcastWithMenu(
+    item: AppMediaItem.Podcast,
+    showSubtitle: Boolean,
+    rowMode: Boolean = false,
+    onNavigateClick: (AppMediaItem.Podcast) -> Unit,
+    onPlayOption: ((AppMediaItem.Podcast, QueueOption, Boolean) -> Unit),
+    playlistActions: ActionsViewModel.PlaylistActions? = null,
+    libraryActions: ActionsViewModel.LibraryActions,
+    providerIconFetcher: (@Composable (Modifier, String) -> Unit)?,
+    serverUrl: String?
+) {
+    BrowsableItemWithMenu(
+        modifier = if (rowMode) Modifier.fillMaxWidth() else Modifier,
+        item = item,
+        onNavigateClick = onNavigateClick,
+        onPlayOption = onPlayOption,
+        playlistActions = playlistActions,
+        libraryActions = libraryActions,
+    ) { mod, onClick, onLongClick ->
+        if (rowMode) {
+            PodcastRowItem(
+                modifier = mod,
+                item = item,
+                serverUrl = serverUrl,
+                onClick = onClick,
+                onLongClick = onLongClick,
+                providerIconFetcher = providerIconFetcher
+            )
+        } else {
+            PodcastGridItem(
+                item = item,
+                showSubtitle = showSubtitle,
+                serverUrl = serverUrl,
+                onClick = onClick,
+                onLongClick = onLongClick,
+                providerIconFetcher = providerIconFetcher
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun <T : AppMediaItem> BrowsableItemWithMenu(
     modifier: Modifier = Modifier,
     item: T,
+    onNavigateClick: (T) -> Unit,
     onPlayOption: ((T, QueueOption, Boolean) -> Unit),
     playlistActions: ActionsViewModel.PlaylistActions? = null,
-    onRemoveFromPlaylist: (() -> Unit)? = null,
     libraryActions: ActionsViewModel.LibraryActions,
     itemComposable: @Composable (
         modifier: Modifier,
@@ -197,7 +229,7 @@ private fun <T : PlayableItem> PlayableItemWithMenu(
     Box(modifier = modifier) {
         itemComposable(
             Modifier.align(Alignment.Center),
-            { onPlayOption(item, QueueOption.REPLACE, false) },
+            onNavigateClick,
             { expandedItemId = item.itemId },
         )
         DropdownMenu(
@@ -271,7 +303,6 @@ private fun <T : PlayableItem> PlayableItemWithMenu(
                     }
                 )
             }
-
             val libText = if (item.isInLibrary) "Remove from library" else "Add to library"
             DropdownMenuItem(
                 text = { Text(libText) },
@@ -296,8 +327,10 @@ private fun <T : PlayableItem> PlayableItemWithMenu(
                 DropdownMenuItem(
                     text = { Text(favText) },
                     onClick = {
-                        libraryActions.onFavoriteClick(item as AppMediaItem)
-                        expandedItemId = null
+                        (item as? AppMediaItem)?.let {
+                            libraryActions.onFavoriteClick(it)
+                            expandedItemId = null
+                        }
                     },
                     leadingIcon = {
                         Icon(
@@ -310,7 +343,7 @@ private fun <T : PlayableItem> PlayableItemWithMenu(
                 )
             }
 
-            if (playlistActions != null && item is AppMediaItem.Track) {
+            if (playlistActions != null && (item is AppMediaItem.Album || item is AppMediaItem.Artist)) {
                 DropdownMenuItem(
                     text = { Text("Add to playlist") },
                     onClick = {
@@ -327,21 +360,6 @@ private fun <T : PlayableItem> PlayableItemWithMenu(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
                             contentDescription = "Add to playlist"
-                        )
-                    }
-                )
-            }
-            if (onRemoveFromPlaylist != null) {
-                DropdownMenuItem(
-                    text = { Text("Remove from playlist") },
-                    onClick = {
-                        onRemoveFromPlaylist()
-                        expandedItemId = null
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Remove from playlist"
                         )
                     }
                 )

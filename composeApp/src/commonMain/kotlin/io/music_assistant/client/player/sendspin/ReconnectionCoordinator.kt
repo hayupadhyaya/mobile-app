@@ -81,10 +81,12 @@ class ReconnectionCoordinator(
                 if (isStreaming) {
                     logger.i { "🔄 TRANSPORT RECONNECTING: attempt=${wsState.attempt}, playbackState=$currentPlaybackState, preserving buffer" }
                     // DON'T call stopStream()! AudioPipeline will keep playing from buffer
-                    _recoveryState.value = StreamRecoveryState.AwaitingReconnect(wasStreaming = true)
+                    _recoveryState.value =
+                        StreamRecoveryState.AwaitingReconnect(wasStreaming = true)
                 } else {
                     logger.i { "🔄 TRANSPORT RECONNECTING: attempt=${wsState.attempt}, NOT streaming, nothing to preserve" }
-                    _recoveryState.value = StreamRecoveryState.AwaitingReconnect(wasStreaming = false)
+                    _recoveryState.value =
+                        StreamRecoveryState.AwaitingReconnect(wasStreaming = false)
                 }
             }
 

@@ -70,7 +70,7 @@ fun CompactPlayerItem(
             // Album cover on the far left
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(48.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(primaryContainer.copy(alpha = track?.let { 1f } ?: 0.4f)),
                 contentAlignment = Alignment.Center
@@ -93,7 +93,7 @@ fun CompactPlayerItem(
                     Icon(
                         imageVector = Icons.Default.Album,
                         contentDescription = null,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = onPrimaryContainer.copy(alpha = 0.4f)
                     )
                 }

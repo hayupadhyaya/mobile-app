@@ -4,18 +4,15 @@ import co.touchlab.kermit.Logger
 import io.music_assistant.client.player.MediaPlayerController
 import io.music_assistant.client.player.sendspin.audio.AudioPipeline
 import io.music_assistant.client.player.sendspin.audio.AudioStreamManager
-import io.music_assistant.client.player.sendspin.transport.SendspinTransport
 import io.music_assistant.client.player.sendspin.model.CommandValue
-import io.music_assistant.client.player.sendspin.model.PlayerStateObject
 import io.music_assistant.client.player.sendspin.model.PlayerStateValue
 import io.music_assistant.client.player.sendspin.model.ServerCommandMessage
 import io.music_assistant.client.player.sendspin.model.StreamMetadataPayload
 import io.music_assistant.client.player.sendspin.protocol.MessageDispatcher
 import io.music_assistant.client.player.sendspin.protocol.MessageDispatcherConfig
-import kotlinx.coroutines.CancellationException
+import io.music_assistant.client.player.sendspin.transport.SendspinTransport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +20,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
@@ -44,7 +40,8 @@ class SendspinClient(
     private var stateReporter: StateReporter? = null
     private var reconnectionCoordinator: ReconnectionCoordinator? = null
     private val clockSynchronizer = ClockSynchronizer()
-    private val audioPipeline: AudioPipeline = AudioStreamManager(clockSynchronizer, mediaPlayerController)
+    private val audioPipeline: AudioPipeline =
+        AudioStreamManager(clockSynchronizer, mediaPlayerController)
 
     // State flows
     private val _connectionState =
@@ -184,7 +181,10 @@ class SendspinClient(
         }
     }
 
-    @Deprecated("Use connectWithTransport instead", ReplaceWith("connectWithTransport(WebSocketSendspinTransport(serverUrl))"))
+    @Deprecated(
+        "Use connectWithTransport instead",
+        ReplaceWith("connectWithTransport(WebSocketSendspinTransport(serverUrl))")
+    )
     private suspend fun connectToServer(serverUrl: String) {
         // This method is kept for backwards compatibility temporarily
         // It will be removed once SendspinClientFactory is updated
@@ -200,7 +200,10 @@ class SendspinClient(
             logger.i { "Initializing with system volume: $currentVolume%" }
 
             // Create WebSocket transport
-            val sendspinTransport = io.music_assistant.client.player.sendspin.transport.WebSocketSendspinTransport(serverUrl)
+            val sendspinTransport =
+                io.music_assistant.client.player.sendspin.transport.WebSocketSendspinTransport(
+                    serverUrl
+                )
             transport = sendspinTransport
 
             // Create message dispatcher
@@ -303,7 +306,8 @@ class SendspinClient(
 
                     is WebSocketState.Error -> {
                         logger.e { "Transport error: ${wsState.error.message}" }
-                        val isPermanent = wsState.error.message?.contains("Failed to reconnect") == true
+                        val isPermanent =
+                            wsState.error.message?.contains("Failed to reconnect") == true
 
                         _connectionState.update {
                             if (isPermanent) {
@@ -362,7 +366,8 @@ class SendspinClient(
                     }
 
                     ProtocolState.Disconnected -> {
-                        Logger.withTag("SendspinClient").e { "📡 PROTOCOL DISCONNECTED - setting connectionState to Idle" }
+                        Logger.withTag("SendspinClient")
+                            .e { "📡 PROTOCOL DISCONNECTED - setting connectionState to Idle" }
                         _connectionState.update { SendspinConnectionState.Idle }
                     }
 
@@ -389,7 +394,8 @@ class SendspinClient(
 
         launch {
             messageDispatcher?.streamEndEvent?.collect {
-                Logger.withTag("SendspinClient").e { "⛔ STREAM END received from server - stopping playback" }
+                Logger.withTag("SendspinClient")
+                    .e { "⛔ STREAM END received from server - stopping playback" }
                 audioPipeline.stopStream()
                 _playbackState.update { SendspinPlaybackState.Idle }
                 // Notify coordinator that stream stopped

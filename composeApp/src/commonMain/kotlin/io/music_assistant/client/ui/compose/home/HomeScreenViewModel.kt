@@ -9,7 +9,6 @@ import io.music_assistant.client.data.MainDataSource
 import io.music_assistant.client.data.model.client.AppMediaItem
 import io.music_assistant.client.data.model.client.AppMediaItem.Companion.toAppMediaItem
 import io.music_assistant.client.data.model.client.AppMediaItem.Companion.toAppMediaItemList
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.client.Player
 import io.music_assistant.client.data.model.client.PlayerData
 import io.music_assistant.client.data.model.server.QueueOption
@@ -165,15 +164,20 @@ class HomeScreenViewModel(
         }
     }
 
-    fun onRecommendationItemClicked(mediaItem: PlayableItem) {
-        dataSource.selectedPlayer?.queueOrPlayerId?.let {
-            playItem(mediaItem, it, QueueOption.PLAY, false)
-        }
-    }
-
-    fun onTrackPlayOption(track: PlayableItem, option: QueueOption, radio: Boolean) {
-        dataSource.selectedPlayer?.queueOrPlayerId?.let {
-            playItem(track, it, option, radio)
+    fun onPlayClick(item: AppMediaItem, option: QueueOption, radio: Boolean) {
+        dataSource.selectedPlayer?.queueOrPlayerId?.let { queueId ->
+            item.uri?.let { uri ->
+                viewModelScope.launch {
+                    apiClient.sendRequest(
+                        Request.Library.play(
+                            media = listOf(uri),
+                            queueOrPlayerId = queueId,
+                            option = option,
+                            radioMode = radio
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -270,26 +274,6 @@ class HomeScreenViewModel(
     }
 
     private fun onOpenExternalLink(url: String) = viewModelScope.launch { _links.emit(url) }
-
-    private fun playItem(
-        item: PlayableItem,
-        queueOrPlayerId: String,
-        option: QueueOption,
-        radio: Boolean
-    ) {
-        item.uri?.let {
-            viewModelScope.launch {
-                apiClient.sendRequest(
-                    Request.Library.play(
-                        media = listOf(it),
-                        queueOrPlayerId = queueOrPlayerId,
-                        option = option,
-                        radioMode = radio
-                    )
-                )
-            }
-        }
-    }
 
 
     @Suppress("UNCHECKED_CAST")

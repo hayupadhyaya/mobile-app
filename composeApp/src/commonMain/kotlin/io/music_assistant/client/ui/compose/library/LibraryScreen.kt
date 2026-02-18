@@ -46,7 +46,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Plus
 import io.music_assistant.client.data.model.client.AppMediaItem
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.MediaType
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.ui.compose.common.DataState
@@ -59,7 +58,7 @@ import org.koin.compose.koinInject
 fun LibraryScreen(
     initialTabType: MediaType?,
     onBack: () -> Unit,
-    onItemClick: (AppMediaItem) -> Unit,
+    onNavigateClick: (AppMediaItem) -> Unit,
 ) {
     val viewModel: LibraryViewModel = koinInject()
     val actionsViewModel: ActionsViewModel = koinInject()
@@ -105,9 +104,8 @@ fun LibraryScreen(
             serverUrl = serverUrl,
             isRowMode = isRowMode,
             toastState = toastState,
-
-            onItemClick = onItemClick,
-            onTrackClick = viewModel::onTrackClick,
+            onNavigateClick = onNavigateClick,
+            onPlayClick = viewModel::onPlayClick,
             onCreatePlaylistClick = viewModel::onCreatePlaylistClick,
             onLoadMore = viewModel::loadMore,
             onSearchQueryChanged = viewModel::onSearchQueryChanged,
@@ -190,8 +188,8 @@ private fun Library(
     serverUrl: String?,
     isRowMode: Boolean,
     toastState: io.music_assistant.client.ui.compose.common.ToastState,
-    onItemClick: (AppMediaItem) -> Unit,
-    onTrackClick: (PlayableItem, QueueOption, Boolean) -> Unit,
+    onNavigateClick: (AppMediaItem) -> Unit,
+    onPlayClick: (AppMediaItem, QueueOption, Boolean) -> Unit,
     onCreatePlaylistClick: () -> Unit,
     onLoadMore: (LibraryViewModel.Tab) -> Unit,
     onSearchQueryChanged: (LibraryViewModel.Tab, String) -> Unit,
@@ -235,8 +233,8 @@ private fun Library(
                     tabState = selectedTab,
                     serverUrl = serverUrl,
                     isRowMode = isRowMode,
-                    onItemClick = onItemClick,
-                    onTrackClick = onTrackClick,
+                    onNavigateClick = onNavigateClick,
+                    onPlayClick = onPlayClick,
                     onCreatePlaylistClick = onCreatePlaylistClick,
                     onLoadMore = { onLoadMore(selectedTab.tab) },
                     playlistActions = playlistActions,
@@ -306,8 +304,8 @@ private fun TabContent(
     tabState: LibraryViewModel.TabState,
     serverUrl: String?,
     isRowMode: Boolean,
-    onItemClick: (AppMediaItem) -> Unit,
-    onTrackClick: (PlayableItem, QueueOption, Boolean) -> Unit,
+    onNavigateClick: (AppMediaItem) -> Unit,
+    onPlayClick: (AppMediaItem, QueueOption, Boolean) -> Unit,
     onCreatePlaylistClick: () -> Unit,
     onLoadMore: () -> Unit,
     playlistActions: ActionsViewModel.PlaylistActions,
@@ -377,8 +375,8 @@ private fun TabContent(
                                 isLoadingMore = tabState.isLoadingMore,
                                 hasMore = tabState.hasMore,
                                 isRowMode = isRowMode,
-                                onItemClick = onItemClick,
-                                onTrackClick = onTrackClick,
+                                onNavigateClick = onNavigateClick,
+                                onPlayClick = onPlayClick,
                                 onLoadMore = onLoadMore,
                                 gridState = it,
                                 playlistActions = playlistActions,

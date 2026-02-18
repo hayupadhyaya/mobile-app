@@ -180,7 +180,8 @@ class AdaptiveBufferManager(
         // Check sustained good conditions (rest unchanged)
         val timeSinceLastIncrease = currentTime - adaptationState.lastAdjustmentTime
         if (adaptationState.lastDirection == Direction.INCREASE &&
-            timeSinceLastIncrease < 60_000_000L) {
+            timeSinceLastIncrease < 60_000_000L
+        ) {
             return false
         }
 
@@ -221,10 +222,10 @@ class AdaptiveBufferManager(
         )
 
         logger.i {
-            "Buffer increased: target=${_targetBufferDuration/1000}ms, " +
-                    "prebuffer=${_currentPrebufferThreshold/1000}ms " +
-                    "(RTT=${smoothedRTT/1000}ms, jitter=${stats.rttStdDev/1000}ms, " +
-                    "dropRate=${(stats.dropRate*100).toInt()}%)"
+            "Buffer increased: target=${_targetBufferDuration / 1000}ms, " +
+                    "prebuffer=${_currentPrebufferThreshold / 1000}ms " +
+                    "(RTT=${smoothedRTT / 1000}ms, jitter=${stats.rttStdDev / 1000}ms, " +
+                    "dropRate=${(stats.dropRate * 100).toInt()}%)"
         }
     }
 
@@ -249,8 +250,8 @@ class AdaptiveBufferManager(
         )
 
         logger.i {
-            "Buffer decreased: target=${_targetBufferDuration/1000}ms, " +
-                    "prebuffer=${_currentPrebufferThreshold/1000}ms"
+            "Buffer decreased: target=${_targetBufferDuration / 1000}ms, " +
+                    "prebuffer=${_currentPrebufferThreshold / 1000}ms"
         }
     }
 
@@ -275,7 +276,8 @@ class AdaptiveBufferManager(
             0L
         }
 
-        val targetBuffer = ((rttComponent + jitterComponent) * qualityMultiplier).toLong() + dropRatePenalty
+        val targetBuffer =
+            ((rttComponent + jitterComponent) * qualityMultiplier).toLong() + dropRatePenalty
 
         return targetBuffer.coerceIn(MIN_BUFFER, MAX_BUFFER)
     }
@@ -290,7 +292,7 @@ class AdaptiveBufferManager(
             .coerceIn(MIN_EARLY_THRESHOLD, MAX_EARLY_THRESHOLD)
     }
 
-     suspend fun reset() {
+    suspend fun reset() {
         logger.i { "Resetting adaptive buffer manager" }
         rttHistory.clear()
         jitterEstimator.reset()
@@ -308,7 +310,8 @@ class AdaptiveBufferManager(
         const val LATE_THRESHOLD = 100_000L // 100ms
 
         // Default thresholds (used before adaptation kicks in)
-        const val DEFAULT_PREBUFFER_THRESHOLD = 75_000L // 75ms (was 200ms - optimized for lower latency)
+        const val DEFAULT_PREBUFFER_THRESHOLD =
+            75_000L // 75ms (was 200ms - optimized for lower latency)
         const val DEFAULT_EARLY_THRESHOLD = 200_000L // 200ms (was 1s - optimized for lower latency)
 
         // Bounds

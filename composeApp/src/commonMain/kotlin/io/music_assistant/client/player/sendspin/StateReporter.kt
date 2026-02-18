@@ -55,10 +55,12 @@ class StateReporter(
                             logger.d { "Periodic state report: SYNCHRONIZED" }
                             reportNow(PlayerStateValue.SYNCHRONIZED)
                         }
+
                         SendspinPlaybackState.Buffering -> {
                             logger.d { "Periodic state report: SYNCHRONIZED (buffering)" }
                             reportNow(PlayerStateValue.SYNCHRONIZED)
                         }
+
                         else -> {
                             // Idle or Error - don't report
                         }

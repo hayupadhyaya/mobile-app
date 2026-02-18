@@ -165,6 +165,7 @@ fun CollapsibleQueue(
                         is DataState.Data -> null
                         is DataState.Stale -> null
                     }
+
                     is DataState.Data -> when (queue.data.items) {
                         is DataState.Error -> "Error loading queue"
                         is DataState.Loading -> "Loading queue..."

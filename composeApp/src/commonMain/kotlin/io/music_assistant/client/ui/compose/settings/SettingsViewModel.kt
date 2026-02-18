@@ -51,7 +51,9 @@ class SettingsViewModel(
 
     fun setSendspinEnabled(enabled: Boolean) = settings.setSendspinEnabled(enabled)
     fun setSendspinDeviceName(name: String) = settings.setSendspinDeviceName(name)
-    fun setSendspinUseCustomConnection(enabled: Boolean) = settings.setSendspinUseCustomConnection(enabled)
+    fun setSendspinUseCustomConnection(enabled: Boolean) =
+        settings.setSendspinUseCustomConnection(enabled)
+
     fun setSendspinPort(port: Int) = settings.setSendspinPort(port)
     fun setSendspinPath(path: String) = settings.setSendspinPath(path)
     fun setSendspinCodecPreference(codec: Codec) = settings.setSendspinCodecPreference(codec)

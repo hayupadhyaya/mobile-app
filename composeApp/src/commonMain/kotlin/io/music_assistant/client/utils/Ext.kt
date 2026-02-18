@@ -1,10 +1,6 @@
 package io.music_assistant.client.utils
 
 import androidx.compose.ui.Modifier
-import io.ktor.http.URLBuilder
-import io.ktor.http.URLProtocol
-import io.ktor.network.sockets.InetSocketAddress
-import io.ktor.util.network.NetworkAddress
 import io.music_assistant.client.api.Answer
 import kotlin.time.Duration
 import kotlin.time.DurationUnit

@@ -21,17 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.music_assistant.client.data.model.client.AppMediaItem
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.QueueOption
-import io.music_assistant.client.ui.compose.common.items.EpisodeWithMenu
-import io.music_assistant.client.ui.compose.common.items.MediaItemAlbum
-import io.music_assistant.client.ui.compose.common.items.MediaItemAlbumRow
-import io.music_assistant.client.ui.compose.common.items.MediaItemArtist
-import io.music_assistant.client.ui.compose.common.items.MediaItemArtistRow
-import io.music_assistant.client.ui.compose.common.items.MediaItemPlaylist
-import io.music_assistant.client.ui.compose.common.items.MediaItemPlaylistRow
-import io.music_assistant.client.ui.compose.common.items.MediaItemPodcast
-import io.music_assistant.client.ui.compose.common.items.MediaItemPodcastRow
+import io.music_assistant.client.ui.compose.common.items.AlbumWithMenu
+import io.music_assistant.client.ui.compose.common.items.ArtistWithMenu
+import io.music_assistant.client.ui.compose.common.items.PlaylistWithMenu
+import io.music_assistant.client.ui.compose.common.items.PodcastEpisodeWithMenu
+import io.music_assistant.client.ui.compose.common.items.PodcastWithMenu
 import io.music_assistant.client.ui.compose.common.items.RadioWithMenu
 import io.music_assistant.client.ui.compose.common.items.TrackWithMenu
 import io.music_assistant.client.ui.compose.common.viewmodel.ActionsViewModel
@@ -44,8 +39,8 @@ fun AdaptiveMediaGrid(
     isLoadingMore: Boolean = false,
     hasMore: Boolean = true,
     isRowMode: Boolean = false,
-    onItemClick: (AppMediaItem) -> Unit,
-    onTrackClick: ((PlayableItem, QueueOption, Boolean) -> Unit),
+    onNavigateClick: (AppMediaItem) -> Unit,
+    onPlayClick: ((AppMediaItem, QueueOption, Boolean) -> Unit),
     onLoadMore: () -> Unit = {},
     gridState: LazyGridState = rememberLazyGridState(),
     playlistActions: ActionsViewModel.PlaylistActions,
@@ -80,109 +75,81 @@ fun AdaptiveMediaGrid(
         items(
             items = items,
             key = { it.itemId },
-            span = if (isRowMode) { { GridItemSpan(maxLineSpan) } } else null
+            span = if (isRowMode) {
+                { GridItemSpan(maxLineSpan) }
+            } else null
         ) { item ->
             val rowModifier = if (isRowMode) Modifier.fillMaxWidth() else Modifier
             when (item) {
+                is AppMediaItem.Artist -> ArtistWithMenu(
+                    item = item,
+                    rowMode = isRowMode,
+                    showSubtitle = true,
+                    serverUrl = serverUrl,
+                    onNavigateClick = onNavigateClick,
+                    onPlayOption = onPlayClick,
+                    libraryActions = libraryActions,
+                    providerIconFetcher = null
+                )
+
+                is AppMediaItem.Album -> AlbumWithMenu(
+                    item = item,
+                    rowMode = isRowMode,
+                    showSubtitle = true,
+                    serverUrl = serverUrl,
+                    onNavigateClick = onNavigateClick,
+                    onPlayOption = onPlayClick,
+                    libraryActions = libraryActions,
+                    providerIconFetcher = null
+                )
+
+                is AppMediaItem.Playlist -> PlaylistWithMenu(
+                    item = item,
+                    rowMode = isRowMode,
+                    showSubtitle = true,
+                    serverUrl = serverUrl,
+                    onNavigateClick = onNavigateClick,
+                    onPlayOption = onPlayClick,
+                    libraryActions = libraryActions,
+                    providerIconFetcher = null
+                )
+
+                is AppMediaItem.Podcast -> PodcastWithMenu(
+                    item = item,
+                    rowMode = isRowMode,
+                    showSubtitle = true,
+                    serverUrl = serverUrl,
+                    onNavigateClick = onNavigateClick,
+                    onPlayOption = onPlayClick,
+                    libraryActions = libraryActions,
+                    providerIconFetcher = null
+                )
+
                 is AppMediaItem.Track -> TrackWithMenu(
-                    modifier = rowModifier,
                     item = item,
                     rowMode = isRowMode,
                     serverUrl = serverUrl,
-                    onTrackPlayOption = onTrackClick,
-                    onItemClick = { (it as? AppMediaItem)?.let { i -> onItemClick(i) } },
+                    onPlayOption = onPlayClick,
                     playlistActions = playlistActions,
                     libraryActions = libraryActions,
                     providerIconFetcher = null
                 )
 
-                is AppMediaItem.Artist -> if (isRowMode) {
-                    MediaItemArtistRow(
-                        modifier = rowModifier,
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        providerIconFetcher = null
-                    )
-                } else {
-                    MediaItemArtist(
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        providerIconFetcher = null
-                    )
-                }
-
-                is AppMediaItem.Album -> if (isRowMode) {
-                    MediaItemAlbumRow(
-                        modifier = rowModifier,
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        providerIconFetcher = null
-                    )
-                } else {
-                    MediaItemAlbum(
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        providerIconFetcher = null
-                    )
-                }
-
-                is AppMediaItem.Playlist -> if (isRowMode) {
-                    MediaItemPlaylistRow(
-                        modifier = rowModifier,
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        providerIconFetcher = null
-                    )
-                } else {
-                    MediaItemPlaylist(
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        providerIconFetcher = null
-                    )
-                }
-
-                is AppMediaItem.Podcast -> if (isRowMode) {
-                    MediaItemPodcastRow(
-                        modifier = rowModifier,
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        providerIconFetcher = null
-                    )
-                } else {
-                    MediaItemPodcast(
-                        item = item,
-                        serverUrl = serverUrl,
-                        onClick = { onItemClick(it) },
-                        providerIconFetcher = null
-                    )
-                }
-
-                is AppMediaItem.PodcastEpisode -> EpisodeWithMenu(
-                    modifier = rowModifier,
+                is AppMediaItem.PodcastEpisode -> PodcastEpisodeWithMenu(
                     item = item,
                     rowMode = isRowMode,
                     serverUrl = serverUrl,
-                    onTrackPlayOption = onTrackClick,
-                    onItemClick = { (it as? AppMediaItem)?.let { i -> onItemClick(i) } },
+                    onPlayOption = onPlayClick,
                     playlistActions = playlistActions,
                     libraryActions = libraryActions,
                     providerIconFetcher = null
                 )
 
                 is AppMediaItem.RadioStation -> RadioWithMenu(
-                    modifier = rowModifier,
                     item = item,
                     rowMode = isRowMode,
                     serverUrl = serverUrl,
-                    onTrackPlayOption = onTrackClick,
-                    onItemClick = { (it as? AppMediaItem)?.let { i -> onItemClick(i) } },
+                    onPlayOption = onPlayClick,
                     playlistActions = playlistActions,
                     libraryActions = libraryActions,
                     providerIconFetcher = null

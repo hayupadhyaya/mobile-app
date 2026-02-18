@@ -48,6 +48,7 @@ data class PlayerData(
             isLocal = other.isLocal,
         )
     }
+
     data class Bind(
         val id: String,
         val parentId: String,

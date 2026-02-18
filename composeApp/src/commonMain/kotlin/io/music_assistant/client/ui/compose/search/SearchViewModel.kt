@@ -8,7 +8,6 @@ import io.music_assistant.client.data.MainDataSource
 import io.music_assistant.client.data.model.client.AppMediaItem
 import io.music_assistant.client.data.model.client.AppMediaItem.Companion.toAppMediaItem
 import io.music_assistant.client.data.model.client.AppMediaItem.Companion.toAppMediaItemList
-import io.music_assistant.client.data.model.client.PlayableItem
 import io.music_assistant.client.data.model.server.MediaType
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.data.model.server.SearchResult
@@ -119,18 +118,19 @@ class SearchViewModel(
         _state.update { it.copy(searchState = it.searchState.copy(libraryOnly = libraryOnly)) }
     }
 
-    fun onTrackClick(track: PlayableItem, option: QueueOption, radio: Boolean) {
+    fun onPlayClick(track: AppMediaItem, option: QueueOption, radio: Boolean) {
         viewModelScope.launch {
-            val queueId = mainDataSource.selectedPlayer?.queueOrPlayerId ?: return@launch
-            track.uri?.let { uri ->
-                apiClient.sendRequest(
-                    Request.Library.play(
-                        media = listOf(uri),
-                        queueOrPlayerId = queueId,
-                        option = option,
-                        radioMode = radio
+            mainDataSource.selectedPlayer?.queueOrPlayerId?.let { queueId ->
+                track.uri?.let { uri ->
+                    apiClient.sendRequest(
+                        Request.Library.play(
+                            media = listOf(uri),
+                            queueOrPlayerId = queueId,
+                            option = option,
+                            radioMode = radio
+                        )
                     )
-                )
+                }
             }
         }
     }

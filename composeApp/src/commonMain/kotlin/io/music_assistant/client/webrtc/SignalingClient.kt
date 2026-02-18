@@ -123,16 +123,55 @@ class SignalingClient(
             // Serialize using the concrete class serializer
             // Note: Can't use polymorphic serialization because "type" field conflicts with discriminator
             val json = when (message) {
-                is SignalingMessage.ConnectRequest -> signalingJson.encodeToString(SignalingMessage.ConnectRequest.serializer(), message)
-                is SignalingMessage.Connected -> signalingJson.encodeToString(SignalingMessage.Connected.serializer(), message)
-                is SignalingMessage.Offer -> signalingJson.encodeToString(SignalingMessage.Offer.serializer(), message)
-                is SignalingMessage.Answer -> signalingJson.encodeToString(SignalingMessage.Answer.serializer(), message)
-                is SignalingMessage.IceCandidate -> signalingJson.encodeToString(SignalingMessage.IceCandidate.serializer(), message)
-                is SignalingMessage.Error -> signalingJson.encodeToString(SignalingMessage.Error.serializer(), message)
-                is SignalingMessage.PeerDisconnected -> signalingJson.encodeToString(SignalingMessage.PeerDisconnected.serializer(), message)
-                is SignalingMessage.Ping -> signalingJson.encodeToString(SignalingMessage.Ping.serializer(), message)
-                is SignalingMessage.Pong -> signalingJson.encodeToString(SignalingMessage.Pong.serializer(), message)
-                is SignalingMessage.Unknown -> signalingJson.encodeToString(SignalingMessage.Unknown.serializer(), message)
+                is SignalingMessage.ConnectRequest -> signalingJson.encodeToString(
+                    SignalingMessage.ConnectRequest.serializer(),
+                    message
+                )
+
+                is SignalingMessage.Connected -> signalingJson.encodeToString(
+                    SignalingMessage.Connected.serializer(),
+                    message
+                )
+
+                is SignalingMessage.Offer -> signalingJson.encodeToString(
+                    SignalingMessage.Offer.serializer(),
+                    message
+                )
+
+                is SignalingMessage.Answer -> signalingJson.encodeToString(
+                    SignalingMessage.Answer.serializer(),
+                    message
+                )
+
+                is SignalingMessage.IceCandidate -> signalingJson.encodeToString(
+                    SignalingMessage.IceCandidate.serializer(),
+                    message
+                )
+
+                is SignalingMessage.Error -> signalingJson.encodeToString(
+                    SignalingMessage.Error.serializer(),
+                    message
+                )
+
+                is SignalingMessage.PeerDisconnected -> signalingJson.encodeToString(
+                    SignalingMessage.PeerDisconnected.serializer(),
+                    message
+                )
+
+                is SignalingMessage.Ping -> signalingJson.encodeToString(
+                    SignalingMessage.Ping.serializer(),
+                    message
+                )
+
+                is SignalingMessage.Pong -> signalingJson.encodeToString(
+                    SignalingMessage.Pong.serializer(),
+                    message
+                )
+
+                is SignalingMessage.Unknown -> signalingJson.encodeToString(
+                    SignalingMessage.Unknown.serializer(),
+                    message
+                )
             }
             logger.d { "Sending signaling message: ${message.type}" }
             logger.d { "JSON payload: $json" }
@@ -187,11 +226,13 @@ class SignalingClient(
                         is Frame.Text -> {
                             handleTextFrame(frame)
                         }
+
                         is Frame.Close -> {
                             logger.i { "Signaling server closed connection" }
                             _connectionState.value = SignalingState.Disconnected
                             break
                         }
+
                         else -> {
                             // Ignore binary frames, ping/pong
                         }

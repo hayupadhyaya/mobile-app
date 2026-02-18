@@ -79,7 +79,8 @@ class WebRTCDataChannelTransport(
         }
 
         if (openState == null) {
-            val error = "WebRTC data channel did not open within timeout (current state: ${dataChannelWrapper.state.value})"
+            val error =
+                "WebRTC data channel did not open within timeout (current state: ${dataChannelWrapper.state.value})"
             logger.e { error }
             throw IllegalStateException(error)
         }
