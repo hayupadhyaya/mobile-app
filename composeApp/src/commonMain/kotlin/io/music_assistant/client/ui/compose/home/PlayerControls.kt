@@ -37,7 +37,6 @@ import io.music_assistant.client.ui.compose.common.action.PlayerAction
 fun PlayerControls(
     modifier: Modifier = Modifier,
     playerData: PlayerData,
-    enabled: Boolean,
     playerAction: (PlayerData, PlayerAction) -> Unit,
     showVolumeButtons: Boolean = true,
     showAdditionalButtons: Boolean = true,
@@ -45,6 +44,7 @@ fun PlayerControls(
 ) {
     val player = playerData.player
     val queue = playerData.queueInfo
+    val playerEnabled = player.canPlay && !player.isAnnouncing
     val buttonsEnabled = queue?.currentItem?.isPlayable == true
     val smallButtonSize = (mainButtonSize.value * 0.6).dp
     val additionalButtonSize = (mainButtonSize.value * 0.4).dp
@@ -62,7 +62,7 @@ fun PlayerControls(
                 icon = FontAwesomeIcons.Solid.VolumeDown,
                 tint = MaterialTheme.colorScheme.primary,
                 size = smallButtonSize,
-                enabled = enabled,
+                enabled = playerEnabled,
             ) { playerAction(playerData, PlayerAction.VolumeDown) }
         }
 
@@ -75,7 +75,7 @@ fun PlayerControls(
                         Icons.Default.Shuffle,
                     tint = MaterialTheme.colorScheme.primary,
                     size = additionalButtonSize,
-                    enabled = enabled && buttonsEnabled,
+                    enabled = playerEnabled && buttonsEnabled,
                 ) {
                     playerAction(
                         playerData,
@@ -89,7 +89,7 @@ fun PlayerControls(
             icon = Icons.Default.SkipPrevious,
             tint = MaterialTheme.colorScheme.primary,
             size = smallButtonSize,
-            enabled = enabled && buttonsEnabled,
+            enabled = playerEnabled && buttonsEnabled,
         ) { playerAction(playerData, PlayerAction.Previous) }
 
         ActionButton(
@@ -99,14 +99,14 @@ fun PlayerControls(
             },
             tint = MaterialTheme.colorScheme.primary,
             size = mainButtonSize,
-            enabled = enabled && buttonsEnabled,
+            enabled = playerEnabled && buttonsEnabled,
         ) { playerAction(playerData, PlayerAction.TogglePlayPause) }
 
         ActionButton(
             icon = Icons.Default.SkipNext,
             tint = MaterialTheme.colorScheme.primary,
             size = smallButtonSize,
-            enabled = enabled && buttonsEnabled,
+            enabled = playerEnabled && buttonsEnabled,
         ) { playerAction(playerData, PlayerAction.Next) }
 
         if (showAdditionalButtons) {
@@ -121,7 +121,7 @@ fun PlayerControls(
                     },
                     tint = MaterialTheme.colorScheme.primary,
                     size = additionalButtonSize,
-                    enabled = enabled && buttonsEnabled && repeatMode != null,
+                    enabled = playerEnabled && buttonsEnabled && repeatMode != null,
                 ) {
                     repeatMode?.let {
                         playerAction(
@@ -138,7 +138,7 @@ fun PlayerControls(
                 icon = FontAwesomeIcons.Solid.VolumeUp,
                 tint = MaterialTheme.colorScheme.primary,
                 size = smallButtonSize,
-                enabled = enabled,
+                enabled = playerEnabled,
             ) { playerAction(playerData, PlayerAction.VolumeUp) }
         }
     }

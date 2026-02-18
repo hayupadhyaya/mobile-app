@@ -215,7 +215,8 @@ internal fun PlayersPager(
                         Row(
                             modifier = Modifier.fillMaxWidth().height(36.dp)
                                 .padding(horizontal = 64.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
                                 modifier = Modifier
@@ -338,7 +339,7 @@ private fun GroupDialog(
                 ) {
                     // Current player at the very top
                     item {
-                        GroupPlayerVolumeItem(
+                        GroupPlayerItem(
                             playerId = item.player.id,
                             playerName = item.player.name,
                             isGroup = item.player.isGroup,
@@ -351,7 +352,7 @@ private fun GroupDialog(
                     // Bound players
                     val boundChildren = item.groupChildren.filter { it.isBound }
                     items(boundChildren, key = { "${it.id}_${it.volume}" }) { child ->
-                        GroupPlayerVolumeItem(
+                        GroupPlayerItem(
                             playerId = child.id,
                             playerName = child.name,
                             volume = child.volume,
@@ -364,7 +365,7 @@ private fun GroupDialog(
                     // Unbound players
                     val unboundChildren = item.groupChildren.filter { !it.isBound }
                     items(unboundChildren, key = { it.id }) { child ->
-                        GroupPlayerVolumeItem(
+                        GroupPlayerItem(
                             playerId = child.id,
                             playerName = child.name,
                             volume = child.volume,
@@ -381,10 +382,10 @@ private fun GroupDialog(
 }
 
 /**
- * Group player volume item with name and volume slider
+ * Group player item with name and volume
  */
 @Composable
-private fun GroupPlayerVolumeItem(
+private fun GroupPlayerItem(
     playerId: String,
     playerName: String,
     isGroup: Boolean = false,

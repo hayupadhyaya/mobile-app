@@ -29,7 +29,7 @@ data class Player(
     val displayName: String = run {
         val counter = groupChildren?.takeIf { isGroup || it.size > 1 }?.size
         val suffix = if (counter != null) {
-            if (isGroup) " ($counter)" else " +${counter - 1}"
+            if (isGroup) " (${counter.takeIf { it > 0 } ?: "empty"})" else " +${counter - 1}"
         } else ""
         "$name$suffix"
     }
@@ -37,7 +37,9 @@ data class Player(
     val providerType = provider.substringBefore("--")
 
     val currentVolume =
-        if (isGroup || groupChildren?.isNotEmpty() == true) groupVolume else volumeLevel
+        if (groupChildren?.isNotEmpty() == true) groupVolume else volumeLevel
+
+    val canPlay = !isGroup || (groupChildren?.isNotEmpty() == true)
 
     fun asBindFor(other: Player): PlayerData.Bind? {
         if (id == other.id) return null

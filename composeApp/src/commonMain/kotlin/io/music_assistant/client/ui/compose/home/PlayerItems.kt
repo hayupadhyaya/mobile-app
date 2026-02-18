@@ -135,7 +135,6 @@ fun CompactPlayerItem(
             PlayerControls(
                 playerData = item,
                 playerAction = playerAction,
-                enabled = !item.player.isAnnouncing,
                 showVolumeButtons = false,
                 showAdditionalButtons = false,
             )
@@ -328,7 +327,6 @@ fun FullPlayerItem(
         PlayerControls(
             playerData = item,
             playerAction = playerAction,
-            enabled = !item.player.isAnnouncing,
             showVolumeButtons = false,
             mainButtonSize = 64.dp
         )

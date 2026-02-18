@@ -30,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -103,6 +104,7 @@ class MainMediaPlaybackService : MediaBrowserServiceCompat() {
                     AudioDeviceInfo.TYPE_USB_DEVICE,          // USB audio
                     AudioDeviceInfo.TYPE_USB_HEADSET,         // USB headset
                     AudioDeviceInfo.TYPE_USB_ACCESSORY -> true
+
                     else -> false
                 }
             } == true
@@ -115,15 +117,12 @@ class MainMediaPlaybackService : MediaBrowserServiceCompat() {
                 // device removals (e.g., BT A2DP + SCO at once) only trigger ONE pause
                 audioRoutingPauseJob?.cancel()
                 audioRoutingPauseJob = scope.launch {
-                    kotlinx.coroutines.delay(300)
-                    currentPlayerData.value?.let { playerData ->
-                        if (playerData.player.isPlaying) {
-                            logger.i { "Pausing player ${playerData.player.id} due to audio output disconnection" }
-                            dataSource.playerAction(playerData, PlayerAction.TogglePlayPause)
-                        } else {
-                            logger.d { "Player already paused, no action needed" }
+                    delay(300)
+                    players.value.firstOrNull { it.isLocal }
+                        ?.takeIf { it.player.isPlaying }
+                        ?.let { localPlayer ->
+                            dataSource.playerAction(localPlayer, PlayerAction.TogglePlayPause)
                         }
-                    } ?: logger.w { "No active player found to pause" }
                 }
             }
         }
