@@ -5,9 +5,11 @@ import io.music_assistant.client.api.ConnectionInfo
 import io.music_assistant.client.player.sendspin.audio.Codec
 import io.music_assistant.client.player.sendspin.audio.Codecs
 import io.music_assistant.client.ui.theme.ThemeSetting
+import io.music_assistant.client.utils.myJson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.serialization.encodeToString
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -247,6 +249,42 @@ class SettingsRepository(
     fun setLastConnectionMode(mode: String) {
         settings.putString("last_connection_mode", mode)
         _lastConnectionMode.update { mode }
+    }
+
+    // Connection history (most-recent-first, max 10 entries)
+    private val _connectionHistory = MutableStateFlow(loadConnectionHistory())
+    val connectionHistory = _connectionHistory.asStateFlow()
+
+    private fun loadConnectionHistory(): List<ConnectionHistoryEntry> {
+        val json = settings.getStringOrNull("connection_history")
+        if (json != null) {
+            return try { myJson.decodeFromString(json) } catch (_: Exception) { emptyList() }
+        }
+        // Migration: build history from legacy single-server keys (runs once on first upgrade)
+        return when (settings.getStringOrNull("last_connection_mode")) {
+            "webrtc" -> {
+                val id = settings.getString("webrtc_remote_id", "").takeIf { it.isNotBlank() }
+                    ?: return emptyList()
+                listOf(ConnectionHistoryEntry(type = ConnectionType.WEBRTC, remoteId = id))
+            }
+            else -> {
+                val host = settings.getStringOrNull("host")?.takeIf { it.isNotBlank() } ?: return emptyList()
+                val port = settings.getIntOrNull("port")?.takeIf { it > 0 } ?: return emptyList()
+                listOf(ConnectionHistoryEntry(
+                    type = ConnectionType.DIRECT, host = host, port = port,
+                    isTls = settings.getBoolean("isTls", false)
+                ))
+            }
+        }
+    }
+
+    fun addOrUpdateHistoryEntry(entry: ConnectionHistoryEntry) {
+        val updated = _connectionHistory.value
+            .filter { it.serverIdentifier != entry.serverIdentifier }
+            .let { listOf(entry) + it }
+            .take(10)
+        settings.putString("connection_history", myJson.encodeToString(updated))
+        _connectionHistory.update { updated }
     }
 
     // UI preferences

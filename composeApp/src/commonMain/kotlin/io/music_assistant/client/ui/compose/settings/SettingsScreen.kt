@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.BasicAlertDialog
@@ -49,10 +50,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.music_assistant.client.api.ConnectionInfo
 import io.music_assistant.client.api.Defaults
+import io.music_assistant.client.settings.ConnectionHistoryEntry
+import io.music_assistant.client.settings.ConnectionType
 import io.music_assistant.client.data.model.server.ServerInfo
 import io.music_assistant.client.data.model.server.User
 import io.music_assistant.client.player.sendspin.audio.Codecs
@@ -80,6 +84,7 @@ fun SettingsScreen(goHome: () -> Unit, exitApp: () -> Unit) {
     val savedConnectionInfo by viewModel.savedConnectionInfo.collectAsStateWithLifecycle()
     val savedToken by viewModel.savedToken.collectAsStateWithLifecycle()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
+    val connectionHistory by viewModel.connectionHistoryWithCredentials.collectAsStateWithLifecycle()
     val dataConnection = (sessionState as? SessionState.Connected)?.dataConnectionState
     val isAuthenticated = dataConnection == DataConnectionState.Authenticated
 
@@ -212,7 +217,9 @@ fun SettingsScreen(goHome: () -> Unit, exitApp: () -> Unit) {
                                 )
                             },
                             directConnectEnabled = ipAddress.isValidHost() && port.isIpPort(),
-                            sessionState = sessionState
+                            sessionState = sessionState,
+                            connectionHistory = connectionHistory,
+                            onConnectFromHistory = { viewModel.connectFromHistory(it) },
                         )
                     }
 
@@ -312,11 +319,14 @@ private fun ConnectionMethodTabs(
     onTlsChange: (Boolean) -> Unit,
     onDirectConnect: () -> Unit,
     directConnectEnabled: Boolean,
-    sessionState: SessionState
+    sessionState: SessionState,
+    connectionHistory: List<ConnectionHistoryEntry>,
+    onConnectFromHistory: (ConnectionHistoryEntry) -> Unit,
 ) {
     val preferredMethod by viewModel.preferredConnectionMethod.collectAsStateWithLifecycle()
     val selectedTab = if (preferredMethod == "webrtc") 1 else 0
     val webrtcRemoteId by viewModel.webrtcRemoteId.collectAsStateWithLifecycle()
+    var showHistoryDialog by remember { mutableStateOf(false) }
 
     SectionCard {
         SectionTitle("Connection Method")
@@ -354,7 +364,8 @@ private fun ConnectionMethodTabs(
                     onPortChange = onPortChange,
                     onTlsChange = onTlsChange,
                     onConnect = onDirectConnect,
-                    enabled = directConnectEnabled
+                    enabled = directConnectEnabled,
+                    onShowHistory = { showHistoryDialog = true },
                 )
             }
 
@@ -364,10 +375,22 @@ private fun ConnectionMethodTabs(
                     remoteId = webrtcRemoteId,
                     onRemoteIdChange = { viewModel.setWebrtcRemoteId(it.uppercase()) },
                     onConnect = { viewModel.attemptWebRTCConnection(webrtcRemoteId) },
-                    sessionState = sessionState
+                    sessionState = sessionState,
+                    onShowHistory = { showHistoryDialog = true },
                 )
             }
         }
+    }
+
+    if (showHistoryDialog) {
+        ConnectionHistoryDialog(
+            history = connectionHistory,
+            onConnect = { entry ->
+                onConnectFromHistory(entry)
+                showHistoryDialog = false
+            },
+            onDismiss = { showHistoryDialog = false },
+        )
     }
 }
 
@@ -381,7 +404,8 @@ private fun DirectConnectionContent(
     onPortChange: (String) -> Unit,
     onTlsChange: (Boolean) -> Unit,
     onConnect: () -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    onShowHistory: () -> Unit,
 ) {
     // Host input
     TextField(
@@ -440,13 +464,24 @@ private fun DirectConnectionContent(
         )
     }
 
-    // Connect button
-    Button(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onConnect,
-        enabled = enabled
+    // Connect button + history icon
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("Connect")
+        Button(
+            modifier = Modifier.weight(1f),
+            onClick = onConnect,
+            enabled = enabled,
+        ) {
+            Text("Connect")
+        }
+        IconButton(onClick = onShowHistory) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.List,
+                contentDescription = "Connection history",
+            )
+        }
     }
 }
 
@@ -455,7 +490,8 @@ private fun WebRTCConnectionContent(
     remoteId: String,
     onRemoteIdChange: (String) -> Unit,
     onConnect: () -> Unit,
-    sessionState: SessionState
+    sessionState: SessionState,
+    onShowHistory: () -> Unit,
 ) {
     val isInvalidRemoteId = remoteId.isNotBlank() && !RemoteId.isValid(remoteId)
     val isConnected = sessionState is SessionState.Connected.WebRTC
@@ -521,19 +557,30 @@ private fun WebRTCConnectionContent(
         modifier = Modifier.padding(bottom = 12.dp)
     )
 
-    // Connect button
-    Button(
-        onClick = onConnect,
-        modifier = Modifier.fillMaxWidth(),
-        enabled = remoteId.isNotBlank() && !isInvalidRemoteId && !isConnected && !isConnecting
+    // Connect button + history icon
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            when {
-                isConnected -> "Connected"
-                isConnecting -> "Connecting..."
-                else -> "Connect via WebRTC"
-            }
-        )
+        Button(
+            modifier = Modifier.weight(1f),
+            onClick = onConnect,
+            enabled = remoteId.isNotBlank() && !isInvalidRemoteId && !isConnected && !isConnecting,
+        ) {
+            Text(
+                when {
+                    isConnected -> "Connected"
+                    isConnecting -> "Connecting..."
+                    else -> "Connect via WebRTC"
+                }
+            )
+        }
+        IconButton(onClick = onShowHistory) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.List,
+                contentDescription = "Connection history",
+            )
+        }
     }
 
     if (showQrDialog) {
@@ -878,6 +925,68 @@ private fun SendspinSection(
                 onClick = { viewModel.setSendspinEnabled(true) },
             ) {
                 Text("Enable local player")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ConnectionHistoryDialog(
+    history: List<ConnectionHistoryEntry>,
+    onConnect: (ConnectionHistoryEntry) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    BasicAlertDialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Saved Connections", style = MaterialTheme.typography.titleMedium)
+            if (history.isEmpty()) {
+                Text(
+                    "No saved connections yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                history.forEach { entry ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onConnect(entry) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            Text(
+                                text = when (entry.type) {
+                                    ConnectionType.DIRECT -> "${entry.host}:${entry.port}"
+                                    ConnectionType.WEBRTC -> entry.remoteId ?: ""
+                                },
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = when (entry.type) {
+                                    ConnectionType.DIRECT -> "Direct"
+                                    ConnectionType.WEBRTC -> "WebRTC (Remote Access)"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+            OutlinedButton(modifier = Modifier.align(Alignment.End), onClick = onDismiss) {
+                Text("Cancel")
             }
         }
     }

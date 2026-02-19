@@ -5,7 +5,13 @@ import androidx.lifecycle.viewModelScope
 import io.music_assistant.client.api.ConnectionInfo
 import io.music_assistant.client.api.ServiceClient
 import io.music_assistant.client.player.sendspin.audio.Codec
+import io.music_assistant.client.settings.ConnectionHistoryEntry
 import io.music_assistant.client.settings.SettingsRepository
+import io.music_assistant.client.webrtc.model.RemoteId
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
@@ -69,4 +75,23 @@ class SettingsViewModel(
     val webrtcRemoteId = settings.webrtcRemoteId
 
     fun setWebrtcRemoteId(remoteId: String) = settings.setWebrtcRemoteId(remoteId)
+
+    // Connection history — only entries that have a saved token
+    val connectionHistoryWithCredentials: StateFlow<List<ConnectionHistoryEntry>> =
+        settings.connectionHistory.map { history ->
+            history.filter { entry ->
+                settings.getTokenForServer(entry.serverIdentifier) != null
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun connectFromHistory(entry: ConnectionHistoryEntry) {
+        when (entry.type) {
+            io.music_assistant.client.settings.ConnectionType.DIRECT ->
+                entry.connectionInfo?.let { apiClient.connect(it) }
+            io.music_assistant.client.settings.ConnectionType.WEBRTC ->
+                entry.remoteId
+                    ?.let { RemoteId.parse(it) }
+                    ?.let { apiClient.connectWebRTC(it) }
+        }
+    }
 }
