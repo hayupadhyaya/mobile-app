@@ -20,6 +20,25 @@ By leveraging the capabilities of KMP and Compose Multiplatform, Music Assistant
   - media service (background playback) and media notification in system area for quick access to players controls;
   - Android Auto support for built-in player.
 
+## Building from source
+
+### iOS
+
+See [ios_build_instructions.md](ios_build_instructions.md) for a full step-by-step guide covering:
+
+- Required tools and JDK version (JDK 21 LTS required — JDK 25 is not supported)
+- WebRTC framework setup
+- Signing and provisioning configuration
+- Build commands for simulator and physical device
+- Known limitations and troubleshooting
+
+### Android
+
+```bash
+./gradlew :composeApp:assembleDebug
+./gradlew :composeApp:installDebug
+```
+
 ## Want to try it?
 
 Download and install debug APK from latest release on [releases page](https://github.com/music-assistant/kmp-client-app/releases).
