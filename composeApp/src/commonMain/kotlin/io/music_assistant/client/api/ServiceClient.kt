@@ -651,7 +651,8 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                 is SessionState.Connected.Direct -> {
                     settings.getDirectServerIdentifier(
                         currentState.connectionInfo.host,
-                        currentState.connectionInfo.port
+                        currentState.connectionInfo.port,
+                        currentState.connectionInfo.isTls
                     )
                 }
 
@@ -662,8 +663,6 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
             settings.setTokenForServer(serverIdentifier, null)
             Logger.withTag("ServiceClient").d { "Cleared token for server: $serverIdentifier" }
         }
-        // Also clear legacy global token for backward compatibility
-        settings.updateToken(null)
 
         if (_sessionState.value !is SessionState.Connected) {
             return
@@ -727,7 +726,8 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                         is SessionState.Connected.Direct -> {
                             settings.getDirectServerIdentifier(
                                 currentState.connectionInfo.host,
-                                currentState.connectionInfo.port
+                                currentState.connectionInfo.port,
+                                currentState.connectionInfo.isTls
                             )
                         }
 
@@ -739,8 +739,6 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                     Logger.withTag("ServiceClient")
                         .d { "Saved token for server: $serverIdentifier" }
                 }
-                // Also update legacy global token for backward compatibility
-                settings.updateToken(token)
 
                 _sessionState.update {
                     (it as? SessionState.Connected)?.update(
@@ -825,7 +823,6 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
             launch {
                 val serverIdentifier = settings.getWebRTCServerIdentifier(remoteId.rawId)
                 val token = settings.getTokenForServer(serverIdentifier)
-                    ?: settings.token.value // Fallback to legacy
 
                 if (token != null) {
                     Logger.withTag("ServiceClient")
@@ -851,7 +848,8 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
                 is SessionState.Connected.Direct -> {
                     settings.getDirectServerIdentifier(
                         currentState.connectionInfo.host,
-                        currentState.connectionInfo.port
+                        currentState.connectionInfo.port,
+                        currentState.connectionInfo.isTls
                     )
                 }
 
@@ -863,8 +861,6 @@ class ServiceClient(private val settings: SettingsRepository) : CoroutineScope, 
             Logger.withTag("ServiceClient")
                 .d { "Cleared token for server: $serverIdentifier due to auth failure" }
         }
-        // Also clear legacy global token for backward compatibility
-        settings.updateToken(null)
     }
 
     private suspend fun handleIncomingMessage(message: JsonObject) {

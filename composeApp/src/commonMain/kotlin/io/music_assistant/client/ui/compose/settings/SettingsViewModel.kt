@@ -7,11 +7,6 @@ import io.music_assistant.client.api.ServiceClient
 import io.music_assistant.client.player.sendspin.audio.Codec
 import io.music_assistant.client.settings.ConnectionHistoryEntry
 import io.music_assistant.client.settings.SettingsRepository
-import io.music_assistant.client.webrtc.model.RemoteId
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
@@ -20,7 +15,6 @@ class SettingsViewModel(
 ) : ViewModel() {
 
     val savedConnectionInfo = settings.connectionInfo
-    val savedToken = settings.token
     val sessionState = apiClient.sessionState
 
     fun attemptConnection(host: String, port: String, isTls: Boolean) =
@@ -76,22 +70,16 @@ class SettingsViewModel(
 
     fun setWebrtcRemoteId(remoteId: String) = settings.setWebrtcRemoteId(remoteId)
 
-    // Connection history — only entries that have a saved token
-    val connectionHistoryWithCredentials: StateFlow<List<ConnectionHistoryEntry>> =
-        settings.connectionHistory.map { history ->
-            history.filter { entry ->
-                settings.getTokenForServer(entry.serverIdentifier) != null
-            }
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val connectionHistory = settings.connectionHistory
 
-    fun connectFromHistory(entry: ConnectionHistoryEntry) {
-        when (entry.type) {
-            io.music_assistant.client.settings.ConnectionType.DIRECT ->
-                entry.connectionInfo?.let { apiClient.connect(it) }
-            io.music_assistant.client.settings.ConnectionType.WEBRTC ->
-                entry.remoteId
-                    ?.let { RemoteId.parse(it) }
-                    ?.let { apiClient.connectWebRTC(it) }
-        }
+    fun hasCredentialsForDirect(host: String, port: Int, isTls: Boolean): Boolean =
+        settings.getTokenForServer(settings.getDirectServerIdentifier(host, port, isTls)) != null
+
+    fun hasCredentialsForWebRTC(remoteId: String): Boolean =
+        settings.getTokenForServer(settings.getWebRTCServerIdentifier(remoteId)) != null
+
+    fun removeFromHistory(entry: ConnectionHistoryEntry) {
+        settings.removeHistoryEntry(entry.serverIdentifier)
+        settings.setTokenForServer(entry.serverIdentifier, null)
     }
 }
