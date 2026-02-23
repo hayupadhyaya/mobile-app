@@ -1,7 +1,17 @@
 package io.music_assistant.client.data.model.server
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
 
 @Serializable
 data class ServerMediaItem(
@@ -39,6 +49,15 @@ data class ServerMediaItem(
     //@SerialName("track_number") val trackNumber: Int? = null,
     // podcast episode only
     @SerialName("podcast") val podcast: ServerMediaItem? = null,
+    // Audiobook only
+    @SerialName("authors") val authors: List<String>? = null,
+    @SerialName("narrators") val narrators: List<String>? = null,
+    @SerialName("publisher") val publisher: String? = null,
+    // Progress tracking (audiobooks, podcast episodes)
+    // Server sends Boolean for audiobooks and Int 0/1 for podcast episodes
+    @Serializable(with = FlexibleBooleanSerializer::class)
+    @SerialName("fully_played") val fullyPlayed: Boolean? = null,
+    @SerialName("resume_position_ms") val resumePositionMs: Long? = null,
     // Folder only
     @SerialName("items") val items: List<ServerMediaItem>? = null,
 )
@@ -61,7 +80,7 @@ data class Metadata(
     @SerialName("popularity") val popularity: Int? = null,
     @SerialName("release_date") val releaseDate: String? = null,
     //@SerialName("languages") val languages: List<String>? = null,
-    //@SerialName("chapters") val chapters: List<String>? = null,
+    @SerialName("chapters") val chapters: List<MediaItemChapter>? = null,
     @SerialName("last_refresh") val lastRefresh: Long?
 )
 
@@ -83,6 +102,28 @@ data class ProviderMapping(
 //    @SerialName("url") val url: String? = null,
 //    @SerialName("details") val details: String?
 )
+
+@Serializable
+data class MediaItemChapter(
+    @SerialName("position") val position: Int,
+    @SerialName("name") val name: String,
+    @SerialName("start") val start: Double,
+    @SerialName("end") val end: Double? = null,
+) {
+    val duration: Double get() = if (end != null) end - start else 0.0
+}
+
+// Server inconsistency: audiobooks send Boolean, podcast episodes send Int 0/1
+private object FlexibleBooleanSerializer : KSerializer<Boolean> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("FlexibleBoolean", PrimitiveKind.BOOLEAN)
+
+    override fun deserialize(decoder: Decoder): Boolean =
+        (decoder as? JsonDecoder)?.decodeJsonElement()?.let { element ->
+            (element as? JsonPrimitive)?.let { it.booleanOrNull ?: it.intOrNull?.let { n -> n != 0 } } ?: false
+        } ?: decoder.decodeBoolean()
+
+    override fun serialize(encoder: Encoder, value: Boolean) = encoder.encodeBoolean(value)
+}
 
 @Serializable
 data class AudioFormat(

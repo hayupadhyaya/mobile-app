@@ -1,6 +1,7 @@
 package io.music_assistant.client.data.model.client
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Podcasts
 import androidx.compose.material.icons.filled.Radio
@@ -345,6 +346,8 @@ abstract class AppMediaItem(
         image: MediaItemImage?,
         override val duration: Double?,
         val podcast: Podcast?,
+        val fullyPlayed: Boolean?,
+        val resumePositionMs: Long?,
     ) : AppMediaItem(
         itemId = itemId,
         provider = provider,
@@ -385,6 +388,37 @@ abstract class AppMediaItem(
         override val subtitle: String = "Radio"
         override val parentName: String? = null  // No parent item
         override val defaultIcon = Icons.Default.Radio
+    }
+
+    class Audiobook(
+        itemId: String,
+        provider: String,
+        name: String,
+        providerMappings: List<ProviderMapping>?,
+        metadata: Metadata?,
+        favorite: Boolean?,
+        uri: String?,
+        image: MediaItemImage?,
+        override val duration: Double?,
+        val authors: List<String>?,
+        val narrators: List<String>?,
+        val chapters: List<io.music_assistant.client.data.model.server.MediaItemChapter>?,
+        val fullyPlayed: Boolean?,
+        val resumePositionMs: Long?,
+    ) : AppMediaItem(
+        itemId = itemId,
+        provider = provider,
+        name = name,
+        providerMappings = providerMappings,
+        metadata = metadata,
+        favorite = favorite,
+        mediaType = MediaType.AUDIOBOOK,
+        uri = uri,
+        image = image,
+    ), PlayableItem {
+        override val subtitle = authors?.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "Audiobook"
+        override val parentName: String? = authors?.firstOrNull()
+        override val defaultIcon = Icons.AutoMirrored.Filled.MenuBook
     }
 
     companion object {
@@ -503,6 +537,8 @@ abstract class AppMediaItem(
                     image = image,
                     duration = duration,
                     podcast = podcast?.let { it.toAppMediaItem() as? Podcast },
+                    fullyPlayed = fullyPlayed,
+                    resumePositionMs = resumePositionMs,
                 )
 
                 MediaType.RADIO -> RadioStation(
@@ -516,7 +552,23 @@ abstract class AppMediaItem(
                     image = image,
                 )
 
-                MediaType.AUDIOBOOK,
+                MediaType.AUDIOBOOK -> Audiobook(
+                    itemId = itemId,
+                    provider = provider,
+                    name = name,
+                    providerMappings = providerMappings,
+                    metadata = metadata,
+                    favorite = favorite,
+                    uri = uri,
+                    image = image,
+                    duration = duration,
+                    authors = authors,
+                    narrators = narrators,
+                    chapters = metadata?.chapters,
+                    fullyPlayed = fullyPlayed,
+                    resumePositionMs = resumePositionMs,
+                )
+
                 MediaType.FLOW_STREAM,
                 MediaType.ANNOUNCEMENT,
                 MediaType.UNKNOWN -> null
@@ -531,6 +583,7 @@ abstract class AppMediaItem(
                     tracks.toAppMediaItemList() +
                     playlists.toAppMediaItemList() +
                     podcasts.toAppMediaItemList() +
+                    audiobooks.toAppMediaItemList() +
                     radios.toAppMediaItemList()
 
         val AudioFormat.description
@@ -544,6 +597,4 @@ abstract class AppMediaItem(
 
         private fun ProviderMapping.toHash(): ProviderHash = ProviderHash(itemId, providerInstance)
     }
-
-// TODO Radio, audiobooks
 }
