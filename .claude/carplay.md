@@ -62,3 +62,9 @@ No core/common Kotlin files are modified — the guard is entirely in Swift.
 1. Add fetch method to `KmpHelper.kt` (iosMain only)
 2. Add corresponding method to `CarPlayContentManager.swift`
 3. Add entry to `categoryIcons` array and handler in `CarPlaySceneDelegate.swift`
+
+## TODO
+
+- [ ] **Artwork for category lists** — Load album/artist/playlist/audiobook artwork from server into `CPListItem` images (albums, artists, playlists, audiobooks). Currently using SF Symbol placeholders. Requires async image loading via `imageInfo.url(serverUrl:)` and setting `CPListItem.setImage()` after download.
+- [ ] **Recently Played artwork row** — Display recently played items as a `CPListImageRowItem` (same style as Browse row) with artwork thumbnails and titles, instead of plain `CPListItem` text rows. Each image should be the item's artwork loaded from server.
+- [ ] **Now Playing artwork** — Ensure `CPNowPlayingTemplate` displays current track artwork via `MPNowPlayingInfoCenter`
