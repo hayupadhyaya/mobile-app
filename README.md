@@ -10,8 +10,11 @@ By leveraging the capabilities of KMP and Compose Multiplatform, Music Assistant
 
 ## Current set of features:
 
+### Disclaimer: This app is not intended to provide offline playback
+
 - All platforms:
   - managing MA players queues and playback;
+  - managing dynamic and static groups (no static group creation);
   - local playback on device from MA library (Sendspin streaming protocol over WebRTC or WebSocket);
   - comprehensive Settings screen with section-based UI for server connection, authentication (builtin/OAuth), and local player configuration.
 - Android-specific:
