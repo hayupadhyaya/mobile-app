@@ -10,8 +10,11 @@ By leveraging the capabilities of KMP and Compose Multiplatform, Music Assistant
 
 ## Current set of features:
 
+### Disclaimer: This app is not intended to provide offline playback
+
 - All platforms:
   - managing MA players queues and playback;
+  - managing dynamic and static groups (no static group creation);
   - local playback on device from MA library (Sendspin streaming protocol over WebRTC or WebSocket);
   - comprehensive Settings screen with section-based UI for server connection, authentication (builtin/OAuth), and local player configuration.
 - Android-specific:
@@ -49,25 +52,6 @@ The project is in an early stage of development. Any help (especially from desig
 1. [Find an issue](https://github.com/music-assistant/mobile-app/issues) to work on - if you've noticed something wrong or missing, please file an issue about it
 2. Ask in the issue if you can work on it - this prevents multiple people from working on an issue at the same time
 3. Submit a PR with "Closes #<issue number>" at the top of the description
-
-### Building from source
-
-#### iOS
-
-See [ios_build_instructions.md](ios_build_instructions.md) for a full step-by-step guide covering:
-
-- Required tools and JDK version (JDK 21 LTS required — JDK 25 is not supported)
-- WebRTC framework setup
-- Signing and provisioning configuration
-- Build commands for simulator and physical device
-- Known limitations and troubleshooting
-
-#### Android
-
-```bash
-./gradlew :composeApp:assembleDebug
-./gradlew :composeApp:installDebug
-```
 
 ## Want to try it?
 
