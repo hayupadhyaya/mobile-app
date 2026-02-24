@@ -47,42 +47,66 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     // MARK: - UI Construction
 
     // Match Material Design icons from LandingPage.kt LibraryRow
-    // Icons.Default.Album, Icons.AutoMirrored.Filled.FeaturedPlayList,
-    // Icons.AutoMirrored.Filled.MenuBook, Icons.Default.Radio
     private static let categoryIcons: [(name: String, symbol: String)] = [
-        ("Albums", "opticaldisc.fill"),
-        ("Playlists", "list.bullet.rectangle.fill"),
-        ("Audiobooks", "book.fill"),
-        ("Radio", "radio.fill"),
+        ("Albums", "opticaldisc.fill"),           // Icons.Default.Album
+        ("Playlists", "list.bullet.rectangle.fill"), // Icons.AutoMirrored.Filled.FeaturedPlayList
+        ("Audiobooks", "book.fill"),              // Icons.AutoMirrored.Filled.MenuBook
+        ("Radio", "radio.fill"),                  // Icons.Default.Radio
     ]
 
-    // App theme colors (from Color.kt dark scheme)
-    // primaryContainer (card bg) ≈ #404378, primary (icon) = #C0C1FF
-    private static let cardBackground = UIColor(red: 0x40/255.0, green: 0x43/255.0, blue: 0x78/255.0, alpha: 1.0)
-    private static let iconTint = UIColor(red: 0xC0/255.0, green: 0xC1/255.0, blue: 0xFF/255.0, alpha: 1.0)
+    // App theme colors from Color.kt, adaptive for light/dark mode
+    // Light: primaryContainer ≈ #E0DEFF, primary = #575992
+    // Dark:  primaryContainer ≈ #404378, primary = #C0C1FF
+    private static let cardBackground = UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0x40/255.0, green: 0x43/255.0, blue: 0x78/255.0, alpha: 1.0)
+            : UIColor(red: 0xE0/255.0, green: 0xDE/255.0, blue: 0xFF/255.0, alpha: 1.0)
+    }
+    private static let iconTint = UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0xC0/255.0, green: 0xC1/255.0, blue: 0xFF/255.0, alpha: 1.0)
+            : UIColor(red: 0x57/255.0, green: 0x59/255.0, blue: 0x92/255.0, alpha: 1.0)
+    }
+
+    private static func renderCategoryImage(symbol symbolName: String, size: CGSize, traits: UITraitCollection) -> UIImage {
+        let bgColor = cardBackground.resolvedColor(with: traits)
+        let tintColor = iconTint.resolvedColor(with: traits)
+        let symbol = UIImage(systemName: symbolName)!
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { ctx in
+            bgColor.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            let symbolConfig = UIImage.SymbolConfiguration(pointSize: size.height * 0.4, weight: .medium)
+            let configured = symbol.withConfiguration(symbolConfig)
+                .withTintColor(tintColor, renderingMode: .alwaysOriginal)
+            let symbolSize = configured.size
+            let origin = CGPoint(
+                x: (size.width - symbolSize.width) / 2,
+                y: (size.height - symbolSize.height) / 2
+            )
+            configured.draw(at: origin)
+        }
+    }
+
+    /// Creates a dynamic UIImage that re-renders for light/dark mode automatically
+    private static func dynamicCategoryImage(symbol: String, size: CGSize) -> UIImage {
+        let light = renderCategoryImage(symbol: symbol, size: size,
+            traits: UITraitCollection(userInterfaceStyle: .light))
+        let dark = renderCategoryImage(symbol: symbol, size: size,
+            traits: UITraitCollection(userInterfaceStyle: .dark))
+
+        let asset = UIImageAsset()
+        asset.register(light, with: UITraitCollection(userInterfaceStyle: .light))
+        asset.register(dark, with: UITraitCollection(userInterfaceStyle: .dark))
+        return asset.image(with: UITraitCollection.current)
+    }
 
     private func createLibraryTemplate() -> CPListTemplate {
         // Section 1: Browse categories as an image row
         let imageSize = CPListImageRowItem.maximumImageSize
-        let categoryImages = Self.categoryIcons.map { icon -> UIImage in
-            let symbol = UIImage(systemName: icon.symbol)!
-            let renderer = UIGraphicsImageRenderer(size: imageSize)
-            return renderer.image { ctx in
-                // Fill entire rect; CarPlay applies its own corner rounding
-                Self.cardBackground.setFill()
-                ctx.fill(CGRect(origin: .zero, size: imageSize))
 
-                // Draw SF Symbol centered, tinted with app's primary color
-                let symbolConfig = UIImage.SymbolConfiguration(pointSize: imageSize.height * 0.4, weight: .medium)
-                let configured = symbol.withConfiguration(symbolConfig)
-                    .withTintColor(Self.iconTint, renderingMode: .alwaysOriginal)
-                let symbolSize = configured.size
-                let origin = CGPoint(
-                    x: (imageSize.width - symbolSize.width) / 2,
-                    y: (imageSize.height - symbolSize.height) / 2
-                )
-                configured.draw(at: origin)
-            }
+        let categoryImages = Self.categoryIcons.map { icon -> UIImage in
+            Self.dynamicCategoryImage(symbol: icon.symbol, size: imageSize)
         }
 
         let browseRow = CPListImageRowItem(text: "Browse", images: categoryImages)
