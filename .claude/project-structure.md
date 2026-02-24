@@ -61,3 +61,20 @@ ui/{feature}/
 - `data/repository/MainDataSource.kt` - Central state management
 - `di/SharedModule.kt` - Common DI definitions
 - `utils/Navigation.kt` - Navigation destinations
+
+## iOS CarPlay Files
+
+```
+iosApp/iosApp/
+├── CarPlay/
+│   ├── CarPlaySceneDelegate.swift    # Scene delegate, templates, navigation
+│   └── CarPlayContentManager.swift   # Data fetching, AppMediaItem → CPListItem
+├── CarPlay.entitlements              # carplay-audio entitlement
+├── iOSApp.swift                      # AppDelegate for scene routing
+└── Info.plist                        # CarPlay scene configuration
+
+composeApp/src/iosMain/
+└── kotlin/.../di/KmpHelper.kt        # iOS bridge (audiobooks, radio, search)
+```
+
+See `.claude/carplay.md` for full documentation.

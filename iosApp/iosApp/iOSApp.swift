@@ -3,9 +3,11 @@ import ComposeApp
 import UIKit
 import CarPlay
 
-/// Posted after Koin/KMP is initialized (ContentView triggers MainViewController which calls initKoin).
-extension Notification.Name {
-    static let kmpReady = Notification.Name("KMPReadyNotification")
+/// Tracks Koin/KMP initialization state for CarPlay.
+/// ContentView triggers MainViewController which calls initKoin on first render.
+enum KmpState {
+    static var isReady = false
+    static let readyNotification = Notification.Name("KMPReadyNotification")
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -50,7 +52,8 @@ struct iOSApp: App {
                 .onAppear {
                     // Koin is initialized by MainViewController's configure block
                     // (called when ContentView first renders). Notify CarPlay.
-                    NotificationCenter.default.post(name: .kmpReady, object: nil)
+                    KmpState.isReady = true
+                    NotificationCenter.default.post(name: KmpState.readyNotification, object: nil)
                 }
         }
     }

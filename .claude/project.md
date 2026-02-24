@@ -37,6 +37,7 @@ open iosApp/iosApp.xcodeproj
 ## UI Documentation
 
 - **Settings Screen**: See `.claude/settings-screen.md` for complete documentation on server connection, authentication flows, and local player configuration
+- **CarPlay**: See `.claude/carplay.md` for architecture, template constraints, and implementation details
 
 ## Planned Features
 

@@ -13,13 +13,13 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
         self.interfaceController = interfaceController
         print("CP: Connected to CarPlay")
 
-        // Koin may not be initialized yet if CarPlay connects before the main UI loads.
-        // Wait for the KMP ready notification before building templates.
-        if isKmpReady() {
+        // Koin/KMP is initialized when ContentView renders (MainViewController configure block).
+        // CarPlay may connect before that, so check the shared flag first.
+        if KmpState.isReady {
             setupTemplates()
         } else {
             kmpReadyObserver = NotificationCenter.default.addObserver(
-                forName: .kmpReady, object: nil, queue: .main
+                forName: KmpState.readyNotification, object: nil, queue: .main
             ) { [weak self] _ in
                 self?.setupTemplates()
                 if let observer = self?.kmpReadyObserver {
@@ -37,15 +37,6 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
             kmpReadyObserver = nil
         }
         print("CP: Disconnected from CarPlay")
-    }
-
-    private func isKmpReady() -> Bool {
-        // KmpHelper uses Koin lazy inject; check if Koin is started
-        // by seeing if we can access the shared instance without crashing.
-        // After .kmpReady is posted, Koin is guaranteed to be ready.
-        // This is a lightweight check: if the notification was already posted
-        // before we connected, Koin is ready.
-        return (try? KmpHelper.shared.serviceClient) != nil
     }
 
     private func setupTemplates() {
