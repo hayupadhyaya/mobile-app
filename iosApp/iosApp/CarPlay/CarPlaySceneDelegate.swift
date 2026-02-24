@@ -48,10 +48,13 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
 
     // Match Material Design icons from LandingPage.kt LibraryRow
     private static let categoryIcons: [(name: String, symbol: String)] = [
-        ("Albums", "opticaldisc.fill"),           // Icons.Default.Album
-        ("Playlists", "list.bullet.rectangle.fill"), // Icons.AutoMirrored.Filled.FeaturedPlayList
-        ("Audiobooks", "book.fill"),              // Icons.AutoMirrored.Filled.MenuBook
-        ("Radio", "radio.fill"),                  // Icons.Default.Radio
+        ("Artists", "mic.fill"),                          // Icons.Default.Mic
+        ("Albums", "opticaldisc.fill"),                   // Icons.Default.Album
+        ("Tracks", "music.note"),                         // Icons.Default.MusicNote
+        ("Playlists", "list.bullet.rectangle.fill"),      // Icons.AutoMirrored.Filled.FeaturedPlayList
+        ("Audiobooks", "book.fill"),                      // Icons.AutoMirrored.Filled.MenuBook
+        ("Podcasts", "antenna.radiowaves.left.and.right"), // Icons.Default.Podcasts
+        ("Radio", "radio.fill"),                          // Icons.Default.Radio
     ]
 
     // App theme colors from Color.kt, adaptive for light/dark mode
@@ -69,14 +72,19 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     }
 
     private static func renderCategoryImage(symbol symbolName: String, size: CGSize, traits: UITraitCollection) -> UIImage {
-        let bgColor = cardBackground.resolvedColor(with: traits)
         let tintColor = iconTint.resolvedColor(with: traits)
         let symbol = UIImage(systemName: symbolName)!
-        let renderer = UIGraphicsImageRenderer(size: size)
+        
+        // Use scale: 0 to automatically match the screen scale
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 0 // Use screen scale
+        format.opaque = false
+        
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
         return renderer.image { ctx in
-            bgColor.setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-            let symbolConfig = UIImage.SymbolConfiguration(pointSize: size.height * 0.4, weight: .medium)
+            // No background - transparent
+            // Make the symbol much larger - use 80% of the available space
+            let symbolConfig = UIImage.SymbolConfiguration(pointSize: size.height * 0.80, weight: .semibold)
             let configured = symbol.withConfiguration(symbolConfig)
                 .withTintColor(tintColor, renderingMode: .alwaysOriginal)
             let symbolSize = configured.size
@@ -102,27 +110,16 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     }
 
     private func createLibraryTemplate() -> CPListTemplate {
-        // Section 1: Browse categories as an image row
-        let imageSize = CPListImageRowItem.maximumImageSize
-
-        let categoryImages = Self.categoryIcons.map { icon -> UIImage in
-            Self.dynamicCategoryImage(symbol: icon.symbol, size: imageSize)
-        }
-
-        let browseRow = CPListImageRowItem(text: "Browse", images: categoryImages)
-        browseRow.listImageRowHandler = { [weak self] _, index, completion in
-            switch index {
-            case 0: self?.pushAlbumsTemplate()
-            case 1: self?.pushPlaylistsTemplate()
-            case 2: self?.pushAudiobooksTemplate()
-            case 3: self?.pushRadioTemplate()
-            default: break
-            }
+        // "Browse" item pushes a CPGridTemplate with all categories
+        let browseIcon = Self.dynamicCategoryImage(symbol: "square.grid.2x2.fill", size: CPListItem.maximumImageSize)
+        let browseItem = CPListItem(text: "Browse", detailText: "Artists, Albums, Tracks & more", image: browseIcon)
+        browseItem.handler = { [weak self] _, completion in
+            self?.pushBrowseGrid()
             completion()
         }
 
         let browseSection = CPListSection(
-            items: [browseRow],
+            items: [browseItem],
             header: nil,
             sectionIndexTitle: nil
         )
@@ -215,6 +212,29 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
 
     // MARK: - Navigation Helpers
 
+    private func pushBrowseGrid() {
+        // Use 100x100 for grid button images
+        let imageSize = CGSize(width: 100, height: 100)
+        let buttons = Self.categoryIcons.enumerated().map { (index, icon) -> CPGridButton in
+            let image = Self.dynamicCategoryImage(symbol: icon.symbol, size: imageSize)
+            return CPGridButton(titleVariants: [icon.name], image: image) { [weak self] _ in
+                guard let self = self else { return }
+                switch index {
+                case 0: self.pushArtistsTemplate()
+                case 1: self.pushAlbumsTemplate()
+                case 2: self.pushTracksTemplate()
+                case 3: self.pushPlaylistsTemplate()
+                case 4: self.pushAudiobooksTemplate()
+                case 5: self.pushPodcastsTemplate()
+                case 6: self.pushRadioTemplate()
+                default: break
+                }
+            }
+        }
+        let gridTemplate = CPGridTemplate(title: "Browse", gridButtons: buttons)
+        self.interfaceController?.pushTemplate(gridTemplate, animated: true, completion: nil)
+    }
+
     private func pushPlaylistsTemplate() {
         let listTemplate = CPListTemplate(title: "Playlists", sections: [])
         let loadingItem = CPListItem(text: "Loading...", detailText: nil)
@@ -249,6 +269,32 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
         self.interfaceController?.pushTemplate(listTemplate, animated: true, completion: nil)
 
         CarPlayContentManager.shared.fetchArtists { items in
+            self.attachHandlers(to: items)
+            listTemplate.updateSections([CPListSection(items: items)])
+        }
+    }
+
+    private func pushTracksTemplate() {
+        let listTemplate = CPListTemplate(title: "Tracks", sections: [])
+        let loadingItem = CPListItem(text: "Loading...", detailText: nil)
+        listTemplate.updateSections([CPListSection(items: [loadingItem])])
+
+        self.interfaceController?.pushTemplate(listTemplate, animated: true, completion: nil)
+
+        CarPlayContentManager.shared.fetchTracks { items in
+            self.attachHandlers(to: items)
+            listTemplate.updateSections([CPListSection(items: items)])
+        }
+    }
+
+    private func pushPodcastsTemplate() {
+        let listTemplate = CPListTemplate(title: "Podcasts", sections: [])
+        let loadingItem = CPListItem(text: "Loading...", detailText: nil)
+        listTemplate.updateSections([CPListSection(items: [loadingItem])])
+
+        self.interfaceController?.pushTemplate(listTemplate, animated: true, completion: nil)
+
+        CarPlayContentManager.shared.fetchPodcasts { items in
             self.attachHandlers(to: items)
             listTemplate.updateSections([CPListSection(items: items)])
         }

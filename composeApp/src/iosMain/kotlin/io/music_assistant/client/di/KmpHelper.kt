@@ -83,6 +83,22 @@ object KmpHelper : KoinComponent {
         }
     }
 
+    fun fetchTracks(completion: (List<AppMediaItem>) -> Unit) {
+        mainScope.launch {
+            val result = serviceClient.sendRequest(Request.Track.list())
+            val items = result.resultAs<List<ServerMediaItem>>()?.toAppMediaItemList() ?: emptyList()
+            completion(items)
+        }
+    }
+
+    fun fetchPodcasts(completion: (List<AppMediaItem>) -> Unit) {
+        mainScope.launch {
+            val result = serviceClient.sendRequest(Request.Podcast.listLibrary())
+            val items = result.resultAs<List<ServerMediaItem>>()?.toAppMediaItemList() ?: emptyList()
+            completion(items)
+        }
+    }
+
     fun fetchRadioStations(completion: (List<AppMediaItem>) -> Unit) {
         mainScope.launch {
             val result = serviceClient.sendRequest(Request.RadioStation.listLibrary())

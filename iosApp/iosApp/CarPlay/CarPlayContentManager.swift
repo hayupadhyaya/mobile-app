@@ -103,6 +103,18 @@ class CarPlayContentManager {
         }
     }
 
+    func fetchTracks(completion: @escaping ([CPListItem]) -> Void) {
+        KmpHelper.shared.fetchTracks { items in
+            completion(items.compactMap { self.mapToCPListItem($0) })
+        }
+    }
+
+    func fetchPodcasts(completion: @escaping ([CPListItem]) -> Void) {
+        KmpHelper.shared.fetchPodcasts { items in
+            completion(items.compactMap { self.mapToCPListItem($0) })
+        }
+    }
+
     func fetchRadioStations(completion: @escaping ([CPListItem]) -> Void) {
         KmpHelper.shared.fetchRadioStations { items in
             completion(items.compactMap { self.mapToCPListItem($0) })
