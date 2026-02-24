@@ -8,6 +8,7 @@ import io.music_assistant.client.data.model.client.AppMediaItem.Companion.toAppM
 import io.music_assistant.client.data.model.server.QueueOption
 import io.music_assistant.client.data.model.server.ServerMediaItem
 
+import io.music_assistant.client.utils.SessionState
 import io.music_assistant.client.utils.resultAs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,10 @@ object KmpHelper : KoinComponent {
     // Provide a scope for Swift to launch coroutines if needed
     val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
+    fun getServerUrl(): String? {
+        return (serviceClient.sessionState.value as? SessionState.Connected)?.serverInfo?.baseUrl
+    }
+
     // MARK: - Swift Helpers for Data Fetching
     
     fun fetchRecommendations(completion: (List<AppMediaItem>) -> Unit) {

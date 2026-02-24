@@ -2,10 +2,41 @@ import Foundation
 import CarPlay
 import ComposeApp
 
+// MARK: - Image Loader
+
+private class CarPlayImageLoader {
+    static let shared = CarPlayImageLoader()
+
+    private let cache = NSCache<NSString, UIImage>()
+    private let session = URLSession.shared
+
+    func loadImage(from urlString: String, completion: @escaping (UIImage?) -> Void) {
+        let cacheKey = urlString as NSString
+        if let cached = cache.object(forKey: cacheKey) {
+            completion(cached)
+            return
+        }
+
+        guard let url = URL(string: urlString) else {
+            completion(nil)
+            return
+        }
+
+        session.dataTask(with: url) { [weak self] data, _, _ in
+            guard let data = data, let image = UIImage(data: data) else {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            self?.cache.setObject(image, forKey: cacheKey)
+            DispatchQueue.main.async { completion(image) }
+        }.resume()
+    }
+}
+
 /// Manages data fetching for CarPlay using KmpHelper
 class CarPlayContentManager {
     static let shared = CarPlayContentManager()
-    
+
     private let dataSource = KmpHelper.shared.mainDataSource
     private let apiClient = KmpHelper.shared.serviceClient
     
@@ -102,13 +133,8 @@ class CarPlayContentManager {
         let subtitle = item.subtitle
 
         let listItem = CPListItem(text: title, detailText: subtitle)
-        listItem.userInfo = item // Store reference for click handling
-        
-        // Image loading would happen asynchronously
-        // CPListItem image updating is tricky after creation
-        // Standard practice: Load image then call handler?
-        // Or set placeholder
-        
+        listItem.userInfo = item
+
         // Set type-appropriate placeholder icon
         let iconName: String
         if item is AppMediaItem.Audiobook {
@@ -125,7 +151,17 @@ class CarPlayContentManager {
             iconName = "music.note"
         }
         listItem.setImage(UIImage(systemName: iconName))
-        
+
+        // Load artwork asynchronously
+        let serverUrl = KmpHelper.shared.getServerUrl()
+        if let imageUrl = item.imageInfo?.url(serverUrl: serverUrl) {
+            CarPlayImageLoader.shared.loadImage(from: imageUrl) { image in
+                if let image = image {
+                    listItem.setImage(image)
+                }
+            }
+        }
+
         return listItem
     }
 }
