@@ -18,6 +18,8 @@
 		C8FCC1922F17C6A9005E8312 /* NowPlayingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FCC1912F17C6A9005E8312 /* NowPlayingManager.swift */; };
 		C8FCC1952F17E001005E8312 /* NativeAudioController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FCC1962F17E001005E8312 /* NativeAudioController.swift */; };
 		C8FCC1972F17E001005E8312 /* AudioDecoders.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FCC1982F17E001005E8312 /* AudioDecoders.swift */; };
+		C8CP00012F1A000000000001 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8CP00032F1A000000000001 /* CarPlaySceneDelegate.swift */; };
+		C8CP00022F1A000000000002 /* CarPlayContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8CP00042F1A000000000002 /* CarPlayContentManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +33,8 @@
 		C8FCC1912F17C6A9005E8312 /* NowPlayingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingManager.swift; sourceTree = "<group>"; };
 		C8FCC1962F17E001005E8312 /* NativeAudioController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAudioController.swift; sourceTree = "<group>"; };
 		C8FCC1982F17E001005E8312 /* AudioDecoders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDecoders.swift; sourceTree = "<group>"; };
+		C8CP00032F1A000000000001 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
+		C8CP00042F1A000000000002 /* CarPlayContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayContentManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,8 +96,18 @@
 				7555FF8C242A565B00829871 /* Info.plist */,
 				2152FB032600AC8F00CF470E /* iOSApp.swift */,
 				058557D7273AAEEB004C7B11 /* Preview Content */,
+				C8CP00052F1A000000000003 /* CarPlay */,
 			);
 			path = iosApp;
+			sourceTree = "<group>";
+		};
+		C8CP00052F1A000000000003 /* CarPlay */ = {
+			isa = PBXGroup;
+			children = (
+				C8CP00032F1A000000000001 /* CarPlaySceneDelegate.swift */,
+				C8CP00042F1A000000000002 /* CarPlayContentManager.swift */,
+			);
+			path = CarPlay;
 			sourceTree = "<group>";
 		};
 		AB1DB47929225F7C00F7AF9C /* Configuration */ = {
@@ -213,6 +227,8 @@
 				C8FCC1922F17C6A9005E8312 /* NowPlayingManager.swift in Sources */,
 				C8FCC1952F17E001005E8312 /* NativeAudioController.swift in Sources */,
 				C8FCC1972F17E001005E8312 /* AudioDecoders.swift in Sources */,
+				C8CP00012F1A000000000001 /* CarPlaySceneDelegate.swift in Sources */,
+				C8CP00022F1A000000000002 /* CarPlayContentManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -343,6 +359,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = iosApp/CarPlay.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
@@ -371,6 +388,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = iosApp/CarPlay.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";

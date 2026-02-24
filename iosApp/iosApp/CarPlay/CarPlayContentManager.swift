@@ -50,25 +50,37 @@ class CarPlayContentManager {
     
     func fetchPlaylists(completion: @escaping ([CPListItem]) -> Void) {
         KmpHelper.shared.fetchPlaylists { items in
-            completion(items.map { self.mapToCPListItem($0) })
+            completion(items.compactMap { self.mapToCPListItem($0) })
         }
     }
     
     func fetchAlbums(completion: @escaping ([CPListItem]) -> Void) {
         KmpHelper.shared.fetchAlbums { items in
-            completion(items.map { self.mapToCPListItem($0) })
+            completion(items.compactMap { self.mapToCPListItem($0) })
         }
     }
     
     func fetchArtists(completion: @escaping ([CPListItem]) -> Void) {
         KmpHelper.shared.fetchArtists { items in
-            completion(items.map { self.mapToCPListItem($0) })
+            completion(items.compactMap { self.mapToCPListItem($0) })
         }
     }
-    
+
+    func fetchAudiobooks(completion: @escaping ([CPListItem]) -> Void) {
+        KmpHelper.shared.fetchAudiobooks { items in
+            completion(items.compactMap { self.mapToCPListItem($0) })
+        }
+    }
+
+    func fetchRadioStations(completion: @escaping ([CPListItem]) -> Void) {
+        KmpHelper.shared.fetchRadioStations { items in
+            completion(items.compactMap { self.mapToCPListItem($0) })
+        }
+    }
+
     func search(query: String, completion: @escaping ([CPListItem]) -> Void) {
         KmpHelper.shared.search(query: query) { items in
-             completion(items.map { self.mapToCPListItem($0) })
+             completion(items.compactMap { self.mapToCPListItem($0) })
         }
     }
     
@@ -86,26 +98,9 @@ class CarPlayContentManager {
     // MARK: - Helpers
     
     private func mapToCPListItem(_ item: AppMediaItem) -> CPListItem? {
-        // Determine title, subtitle, image
-        // AppMediaItem is a sealed class in Kotlin, hierarchy in Swift overrides
-        
         let title = item.name
-        var subtitle: String? = nil
-        var imageUrl: String? = nil
-        
-        if let track = item as? AppMediaItem.Track {
-            subtitle = track.artist?.name
-            imageUrl = track.album?.image?.url
-        } else if let album = item as? AppMediaItem.Album {
-            subtitle = album.artist?.name
-            imageUrl = album.image?.url
-        } else if let artist = item as? AppMediaItem.Artist {
-            imageUrl = artist.image?.url
-        } else if let playlist = item as? AppMediaItem.Playlist {
-            subtitle = playlist.owner
-            imageUrl = playlist.image?.url
-        }
-        
+        let subtitle = item.subtitle
+
         let listItem = CPListItem(text: title, detailText: subtitle)
         listItem.userInfo = item // Store reference for click handling
         
@@ -114,8 +109,22 @@ class CarPlayContentManager {
         // Standard practice: Load image then call handler?
         // Or set placeholder
         
-        // For MVP, we might skip remote images or use synchronous placeholder
-        listItem.setImage(UIImage(systemName: "music.note"))
+        // Set type-appropriate placeholder icon
+        let iconName: String
+        if item is AppMediaItem.Audiobook {
+            iconName = "book.fill"
+        } else if item is AppMediaItem.RadioStation {
+            iconName = "radio.fill"
+        } else if item is AppMediaItem.Album {
+            iconName = "square.stack"
+        } else if item is AppMediaItem.Playlist {
+            iconName = "music.note.list"
+        } else if item is AppMediaItem.Artist {
+            iconName = "person.2.crop.square.stack"
+        } else {
+            iconName = "music.note"
+        }
+        listItem.setImage(UIImage(systemName: iconName))
         
         return listItem
     }

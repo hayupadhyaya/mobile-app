@@ -71,7 +71,23 @@ object KmpHelper : KoinComponent {
             completion(items)
         }
     }
-    
+
+    fun fetchAudiobooks(completion: (List<AppMediaItem>) -> Unit) {
+        mainScope.launch {
+            val result = serviceClient.sendRequest(Request.Audiobook.listLibrary())
+            val items = result.resultAs<List<ServerMediaItem>>()?.toAppMediaItemList() ?: emptyList()
+            completion(items)
+        }
+    }
+
+    fun fetchRadioStations(completion: (List<AppMediaItem>) -> Unit) {
+        mainScope.launch {
+            val result = serviceClient.sendRequest(Request.RadioStation.listLibrary())
+            val items = result.resultAs<List<ServerMediaItem>>()?.toAppMediaItemList() ?: emptyList()
+            completion(items)
+        }
+    }
+
     fun search(query: String, completion: (List<AppMediaItem>) -> Unit) {
         mainScope.launch {
             val result = serviceClient.sendRequest(
@@ -81,7 +97,9 @@ object KmpHelper : KoinComponent {
                         io.music_assistant.client.data.model.server.MediaType.ARTIST,
                         io.music_assistant.client.data.model.server.MediaType.ALBUM,
                         io.music_assistant.client.data.model.server.MediaType.TRACK,
-                        io.music_assistant.client.data.model.server.MediaType.PLAYLIST
+                        io.music_assistant.client.data.model.server.MediaType.PLAYLIST,
+                        io.music_assistant.client.data.model.server.MediaType.AUDIOBOOK,
+                        io.music_assistant.client.data.model.server.MediaType.RADIO
                     ),
                     limit = 10,
                     libraryOnly = false
