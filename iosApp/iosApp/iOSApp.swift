@@ -2,6 +2,7 @@ import SwiftUI
 import ComposeApp
 import UIKit
 import CarPlay
+import Intents
 
 /// Tracks Koin/KMP initialization state for CarPlay.
 /// ContentView triggers MainViewController which calls initKoin on first render.
@@ -23,6 +24,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
         let config = UISceneConfiguration(name: "Default", sessionRole: connectingSceneSession.role)
         return config
+    }
+
+    func application(_ application: UIApplication,
+                     handlerFor intent: INIntent) -> Any? {
+        if intent is INPlayMediaIntent {
+            return SiriIntentHandler()
+        }
+        return nil
     }
 }
 

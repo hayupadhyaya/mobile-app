@@ -45,6 +45,12 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<key>NSSiriUsageDescription</key>
+	<string>Search and play music using Siri</string>
+	<key>INIntentsSupported</key>
+	<array>
+		<string>INPlayMediaIntent</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

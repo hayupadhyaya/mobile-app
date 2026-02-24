@@ -20,6 +20,7 @@
 		C8FCC1972F17E001005E8312 /* AudioDecoders.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FCC1982F17E001005E8312 /* AudioDecoders.swift */; };
 		C8CP00012F1A000000000001 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8CP00032F1A000000000001 /* CarPlaySceneDelegate.swift */; };
 		C8CP00022F1A000000000002 /* CarPlayContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8CP00042F1A000000000002 /* CarPlayContentManager.swift */; };
+		C8SI00012F1B000000000001 /* SiriIntentHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8SI00022F1B000000000001 /* SiriIntentHandler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		C8FCC1982F17E001005E8312 /* AudioDecoders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDecoders.swift; sourceTree = "<group>"; };
 		C8CP00032F1A000000000001 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
 		C8CP00042F1A000000000002 /* CarPlayContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayContentManager.swift; sourceTree = "<group>"; };
+		C8SI00022F1B000000000001 /* SiriIntentHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiriIntentHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,6 +108,7 @@
 			children = (
 				C8CP00032F1A000000000001 /* CarPlaySceneDelegate.swift */,
 				C8CP00042F1A000000000002 /* CarPlayContentManager.swift */,
+				C8SI00022F1B000000000001 /* SiriIntentHandler.swift */,
 			);
 			path = CarPlay;
 			sourceTree = "<group>";
@@ -229,6 +232,7 @@
 				C8FCC1972F17E001005E8312 /* AudioDecoders.swift in Sources */,
 				C8CP00012F1A000000000001 /* CarPlaySceneDelegate.swift in Sources */,
 				C8CP00022F1A000000000002 /* CarPlayContentManager.swift in Sources */,
+				C8SI00012F1B000000000001 /* SiriIntentHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
