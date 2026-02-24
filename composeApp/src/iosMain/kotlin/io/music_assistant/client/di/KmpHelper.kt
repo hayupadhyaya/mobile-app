@@ -37,19 +37,17 @@ object KmpHelper : KoinComponent {
         mainScope.launch {
             val result = serviceClient.sendRequest(Request.Library.recommendations())
             val serverItems = result.resultAs<List<ServerMediaItem>>() ?: emptyList()
-            // Flat map recommendations which are usually folders/lists
-            // But here we might get specific structure.
-            // HomeVieModel maps `RecommendationFolder`. 
-            // For CarPlay, let's flatten or return items. 
-            // Let's assume we want the items inside the folders for a flat list, or the folders themselves?
-            // HomeScreen works with RecommendationFolder. Let's return flattened items for simplicity or Folders.
-            // "Recents" is usually what we want.
-            
-            // Let's try fetching "Recent" specifically if possible, or mapping the result.
-            // resultAs converts to basic types. HomeScreen logic handles `toAppMediaItemList`.
-            
             val appItems = serverItems.toAppMediaItemList()
             completion(appItems)
+        }
+    }
+
+    fun fetchRecommendationFolders(completion: (List<AppMediaItem.RecommendationFolder>) -> Unit) {
+        mainScope.launch {
+            val result = serviceClient.sendRequest(Request.Library.recommendations())
+            val serverItems = result.resultAs<List<ServerMediaItem>>() ?: emptyList()
+            val folders = serverItems.toAppMediaItemList().filterIsInstance<AppMediaItem.RecommendationFolder>()
+            completion(folders)
         }
     }
     

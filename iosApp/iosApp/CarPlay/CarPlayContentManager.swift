@@ -4,7 +4,7 @@ import ComposeApp
 
 // MARK: - Image Loader
 
-private class CarPlayImageLoader {
+class CarPlayImageLoader {
     static let shared = CarPlayImageLoader()
 
     private let cache = NSCache<NSString, UIImage>()
@@ -106,6 +106,12 @@ class CarPlayContentManager {
     func fetchRadioStations(completion: @escaping ([CPListItem]) -> Void) {
         KmpHelper.shared.fetchRadioStations { items in
             completion(items.compactMap { self.mapToCPListItem($0) })
+        }
+    }
+
+    func fetchRecommendationFolders(completion: @escaping ([AppMediaItem.RecommendationFolder]) -> Void) {
+        KmpHelper.shared.fetchRecommendationFolders { folders in
+            completion(Array(folders))
         }
     }
 

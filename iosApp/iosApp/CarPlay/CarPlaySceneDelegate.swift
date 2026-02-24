@@ -103,35 +103,89 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
             sectionIndexTitle: nil
         )
 
-        // Section 2: Recently Played (starts with loading placeholder)
+        // Section 2+: Recommendation folders (starts with loading placeholder)
         let loadingItem = CPListItem(text: "Loading...", detailText: nil)
-        let recentSection = CPListSection(
+        let loadingSection = CPListSection(
             items: [loadingItem],
-            header: "Recently Played",
+            header: nil,
             sectionIndexTitle: nil
         )
 
-        let libraryList = CPListTemplate(title: "Library", sections: [browseSection, recentSection])
+        let libraryList = CPListTemplate(title: "Library", sections: [browseSection, loadingSection])
 
-        // Async load recently played
-        loadRecentlyPlayed(for: libraryList, browseSection: browseSection)
+        // Async load recommendation folders
+        loadRecommendations(for: libraryList, browseSection: browseSection)
 
         return libraryList
     }
 
     // MARK: - Data Loading Helpers
 
-    private func loadRecentlyPlayed(for template: CPListTemplate, browseSection: CPListSection) {
-        CarPlayContentManager.shared.fetchRecommendations { items in
-            self.attachHandlers(to: items)
-            let recentSection: CPListSection
-            if items.isEmpty {
-                let emptyItem = CPListItem(text: "No recent items", detailText: nil)
-                recentSection = CPListSection(items: [emptyItem], header: "Recently Played", sectionIndexTitle: nil)
-            } else {
-                recentSection = CPListSection(items: items, header: "Recently Played", sectionIndexTitle: nil)
+    private func loadRecommendations(for template: CPListTemplate, browseSection: CPListSection) {
+        CarPlayContentManager.shared.fetchRecommendationFolders { [weak self] (folders: [AppMediaItem.RecommendationFolder]) in
+            guard let self = self else { return }
+
+            if folders.isEmpty {
+                let emptyItem = CPListItem(text: "No recommendations", detailText: nil)
+                let emptySection = CPListSection(items: [emptyItem], header: nil, sectionIndexTitle: nil)
+                template.updateSections([browseSection, emptySection])
+                return
             }
-            template.updateSections([browseSection, recentSection])
+
+            let serverUrl = KmpHelper.shared.getServerUrl()
+            let imageSize = CPListImageRowItem.maximumImageSize
+            let maxImages = 8
+
+            // Placeholder image
+            let placeholder: UIImage = {
+                let renderer = UIGraphicsImageRenderer(size: imageSize)
+                return renderer.image { ctx in
+                    UIColor.secondarySystemBackground.setFill()
+                    ctx.fill(CGRect(origin: .zero, size: imageSize))
+                    if let symbol = UIImage(systemName: "music.note") {
+                        let config = UIImage.SymbolConfiguration(pointSize: imageSize.height * 0.35, weight: .medium)
+                        let tinted = symbol.withConfiguration(config)
+                            .withTintColor(.secondaryLabel, renderingMode: .alwaysOriginal)
+                        let s = tinted.size
+                        tinted.draw(at: CGPoint(x: (imageSize.width - s.width) / 2, y: (imageSize.height - s.height) / 2))
+                    }
+                }
+            }()
+
+            // Build one CPListImageRowItem per folder
+            var sections: [CPListSection] = [browseSection]
+
+            for folder in folders {
+                let folderItems = ((folder.items as? [AppMediaItem]) ?? []).filter { $0.uri != nil }
+                guard !folderItems.isEmpty else { continue }
+
+                let displayItems = Array(folderItems.prefix(maxImages))
+                var images = Array(repeating: placeholder, count: displayItems.count)
+
+                let row = CPListImageRowItem(text: folder.name, images: images)
+                row.listImageRowHandler = { [weak self] _, index, completion in
+                    if index < displayItems.count {
+                        CarPlayContentManager.shared.playItem(displayItems[index])
+                        self?.interfaceController?.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+                    }
+                    completion()
+                }
+
+                let section = CPListSection(items: [row], header: nil, sectionIndexTitle: nil)
+                sections.append(section)
+
+                // Load artwork asynchronously
+                for (i, item) in displayItems.enumerated() {
+                    guard let imageUrl = item.imageInfo?.url(serverUrl: serverUrl) else { continue }
+                    CarPlayImageLoader.shared.loadImage(from: imageUrl) { image in
+                        guard let image = image else { return }
+                        images[i] = image
+                        row.update(images)
+                    }
+                }
+            }
+
+            template.updateSections(sections)
         }
     }
 
