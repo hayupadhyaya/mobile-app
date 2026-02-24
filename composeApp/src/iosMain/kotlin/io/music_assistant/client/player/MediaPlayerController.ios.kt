@@ -3,12 +3,21 @@
 package io.music_assistant.client.player
 
 import io.music_assistant.client.player.sendspin.model.AudioCodec
+import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.UByteVar
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.usePinned
+import platform.AVFAudio.AVAudioSession
+import platform.Foundation.NSData
+import platform.Foundation.NSMutableData
 
 /**
- * MediaPlayerController - iOS stub for Sendspin
+ * MediaPlayerController - iOS implementation for Sendspin
  *
- * Handles raw PCM audio streaming for Sendspin protocol.
- * TODO: Implement using AVAudioEngine or AudioQueue
+ * Delegates to NativeAudioController (Swift) via PlatformPlayerProvider.
+ * NativeAudioController uses AudioQueue for playback and supports FLAC/Opus/PCM
+ * via libFLAC, swift-opus, and PCM passthrough.
  */
 actual class MediaPlayerController actual constructor(platformContext: PlatformContext) {
     private var isPrepared: Boolean = false
@@ -44,12 +53,11 @@ actual class MediaPlayerController actual constructor(platformContext: PlatformC
     }
 
     actual fun writeRawPcm(data: ByteArray): Int {
-        val player = PlatformPlayerProvider.player
-        if (player != null) {
+        val player = PlatformPlayerProvider.player ?: return 0
+        if (data.isNotEmpty()) {
             player.writeRawPcm(data)
-            return data.size
         }
-        return 0
+        return data.size
     }
 
     actual fun pauseSink() { /* no-op on iOS */ }
@@ -75,7 +83,7 @@ actual class MediaPlayerController actual constructor(platformContext: PlatformC
     }
 
     actual fun getCurrentSystemVolume(): Int {
-        // TODO: Add getVolume to interface if needed, for now return dummy
+        // Return a default volume value - actual system volume control is managed by iOS
         return 100
     }
     
